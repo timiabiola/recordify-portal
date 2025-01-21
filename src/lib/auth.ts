@@ -14,19 +14,17 @@ export const getAuthSession = async () => {
 export const signOut = async () => {
   console.log('Starting sign out process...');
   try {
-    // First clear any existing session
-    await supabase.auth.setSession(null);
-    console.log('Session cleared');
-    
-    // Then sign out
-    const { error } = await supabase.auth.signOut({
-      scope: 'local'
-    });
-    
-    if (error) {
-      console.error('Supabase signOut error:', error);
-      toast.error('Error signing out. Please try again.');
-      throw error;
+    // In preview mode, we need to be more aggressive with session clearing
+    if (window.location.hostname.includes('preview')) {
+      console.log('Preview environment detected, clearing all sessions');
+      await supabase.auth.signOut({
+        scope: 'global'
+      });
+    } else {
+      console.log('Production environment, normal sign out');
+      await supabase.auth.signOut({
+        scope: 'local'
+      });
     }
     
     console.log('Sign out API call successful');

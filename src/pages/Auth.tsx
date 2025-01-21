@@ -30,16 +30,15 @@ const Auth = () => {
       if (event === 'SIGNED_OUT') {
         console.log('User signed out successfully');
         setErrorMessage("");
-        toast.success('Signed out successfully');
         
-        // Force a page reload in preview mode to clear any lingering state
+        // In preview mode, force a full page reload
         if (window.location.hostname.includes('preview')) {
-          console.log('Preview environment detected, reloading page');
-          window.location.href = '/auth';
+          console.log('Preview environment detected, forcing full reload');
+          window.location.replace('/auth');
           return;
         }
         
-        // Regular navigation for non-preview environments
+        toast.success('Signed out successfully');
         navigate('/auth');
       }
     });
