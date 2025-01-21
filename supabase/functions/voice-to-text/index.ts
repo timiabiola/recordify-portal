@@ -7,12 +7,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-interface ExpenseData {
-  amount: number;
-  description: string;
-  category: string;
-}
-
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -36,14 +30,17 @@ serve(async (req) => {
       userId: requestData.userId
     })
 
-    if (!requestData.audio) {
-      throw new Error('No audio data provided')
+    if (!requestData.audio || !requestData.userId) {
+      throw new Error('Audio data and userId are required')
     }
 
-    // Remove data URL prefix if present
+    // Remove data URL prefix if present and validate base64
     const base64Data = requestData.audio.replace(/^data:audio\/\w+;base64,/, '')
+    if (!base64Data) {
+      throw new Error('Invalid audio data format')
+    }
     
-    // Create binary data from base64
+    // Create binary data from base64 with validation
     let audioBuffer: Uint8Array
     try {
       const binaryString = atob(base64Data)
@@ -51,10 +48,14 @@ serve(async (req) => {
       for (let i = 0; i < binaryString.length; i++) {
         audioBuffer[i] = binaryString.charCodeAt(i)
       }
-      console.log('Audio buffer created, size:', audioBuffer.length)
+      console.log('Audio buffer created successfully, size:', audioBuffer.length)
     } catch (e) {
       console.error('Base64 decoding error:', e)
-      throw new Error('Failed to decode audio data')
+      throw new Error('Failed to decode audio data: ' + e.message)
+    }
+
+    if (audioBuffer.length === 0) {
+      throw new Error('Empty audio buffer')
     }
 
     // Create form data for OpenAI API
@@ -71,6 +72,10 @@ serve(async (req) => {
       formData,
       'whisper-1'
     )
+
+    if (!transcriptionResponse.data || !transcriptionResponse.data.text) {
+      throw new Error('Invalid response from Whisper API')
+    }
 
     const transcription = transcriptionResponse.data.text
     console.log('Transcription received:', transcription)
@@ -93,74 +98,75 @@ serve(async (req) => {
       ]
     })
 
-    const parsedText = parseResponse.data.choices[0].message?.content
-    if (!parsedText) {
-      throw new Error('Failed to parse expense data: No content received from GPT')
+    if (!parseResponse.data?.choices?.[0]?.message?.content) {
+      throw new Error('Invalid response from GPT API')
     }
-    
+
+    const parsedText = parseResponse.data.choices[0].message.content
     console.log('GPT response:', parsedText)
     
-    let expenseData: ExpenseData
+    let expenseData
     try {
       expenseData = JSON.parse(parsedText)
+      if (!expenseData.amount || !expenseData.description || !expenseData.category) {
+        throw new Error('Missing required fields in parsed expense data')
+      }
       console.log('Parsed expense data:', expenseData)
     } catch (e) {
       console.error('JSON parsing error:', e)
-      throw new Error('Failed to parse expense data: Invalid JSON')
+      throw new Error('Failed to parse expense data: ' + e.message)
     }
 
-    // Save to database if userId is provided
-    if (requestData.userId) {
-      const supabaseClient = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-      )
+    // Save to database
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
 
-      console.log('Saving expense to database...')
+    console.log('Saving expense to database...')
 
-      // First, ensure the category exists or create it
-      const { data: categoryData, error: categoryError } = await supabaseClient
+    // First, ensure the category exists or create it
+    const { data: categoryData, error: categoryError } = await supabaseClient
+      .from('categories')
+      .select('id')
+      .eq('name', expenseData.category)
+      .single()
+
+    let categoryId
+    if (categoryError) {
+      // Category doesn't exist, create it
+      const { data: newCategory, error: createCategoryError } = await supabaseClient
         .from('categories')
-        .select('id')
-        .eq('name', expenseData.category)
+        .insert({ name: expenseData.category })
+        .select()
         .single()
 
-      let categoryId: string
-      if (categoryError) {
-        // Category doesn't exist, create it
-        const { data: newCategory, error: createCategoryError } = await supabaseClient
-          .from('categories')
-          .insert({ name: expenseData.category })
-          .select()
-          .single()
-
-        if (createCategoryError) {
-          console.error('Error creating category:', createCategoryError)
-          throw createCategoryError
-        }
-        categoryId = newCategory.id
-      } else {
-        categoryId = categoryData.id
+      if (createCategoryError) {
+        console.error('Error creating category:', createCategoryError)
+        throw new Error('Failed to create category: ' + createCategoryError.message)
       }
-
-      // Save the expense
-      const { error: expenseError } = await supabaseClient
-        .from('expenses')
-        .insert({
-          user_id: requestData.userId,
-          category_id: categoryId,
-          description: expenseData.description,
-          amount: expenseData.amount,
-          transcription: transcription
-        })
-
-      if (expenseError) {
-        console.error('Error saving expense:', expenseError)
-        throw expenseError
-      }
-      
-      console.log('Expense saved successfully')
+      categoryId = newCategory.id
+    } else {
+      categoryId = categoryData.id
     }
+
+    // Save the expense
+    const { error: expenseError } = await supabaseClient
+      .from('expenses')
+      .insert({
+        user_id: requestData.userId,
+        category_id: categoryId,
+        description: expenseData.description,
+        amount: expenseData.amount,
+        transcription: transcription
+      })
+
+    if (expenseError) {
+      console.error('Error saving expense:', expenseError)
+      throw new Error('Failed to save expense: ' + expenseError.message)
+    }
+    
+    console.log('Expense saved successfully')
 
     return new Response(
       JSON.stringify({
