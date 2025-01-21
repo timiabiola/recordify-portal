@@ -21,6 +21,7 @@ export const submitExpenseAudio = async (audioBlob: Blob) => {
 
     if (error) {
       console.error('Error from voice-to-text function:', error);
+      toast.error(error.message || 'Failed to process expense. Please try again.');
       throw error;
     }
 
@@ -28,13 +29,23 @@ export const submitExpenseAudio = async (audioBlob: Blob) => {
     if (data?.expense) {
       console.log('Expense data received:', data.expense);
       toast.success('Expense recorded successfully!');
+      return data.expense;
+    } else if (data?.error) {
+      console.error('Error in response:', data.error);
+      toast.error(data.error);
+      throw new Error(data.error);
     } else {
       console.error('No expense data in response:', data);
       toast.error('Failed to process expense. Please try again.');
+      throw new Error('Invalid response format');
     }
 
   } catch (error) {
     console.error('Error in submitExpenseAudio:', error);
+    // If the error hasn't been handled by a more specific case above
+    if (!error.message.includes('recorded successfully')) {
+      toast.error(error.message || 'Failed to process expense. Please try again.');
+    }
     throw error;
   }
 };

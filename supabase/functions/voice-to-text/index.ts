@@ -34,7 +34,16 @@ serve(async (req) => {
     const authHeader = req.headers.get('authorization');
     if (!authHeader) {
       console.error('No authorization header found');
-      throw new Error('Not authenticated');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Authentication required. Please sign in.',
+        }),
+        { 
+          status: 401,
+          headers: corsHeaders 
+        }
+      );
     }
 
     // Verify the JWT token
@@ -43,7 +52,16 @@ serve(async (req) => {
     
     if (authError || !user) {
       console.error('Authentication error:', authError);
-      throw new Error('Invalid authentication');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Invalid authentication. Please sign in again.',
+        }),
+        { 
+          status: 401,
+          headers: corsHeaders 
+        }
+      );
     }
 
     console.log('Authenticated user:', user.id);
@@ -55,13 +73,31 @@ serve(async (req) => {
       console.log('Request body parsed successfully');
     } catch (parseError) {
       console.error('Failed to parse request body:', parseError);
-      throw new Error('Invalid request format');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Invalid request format. Please try again.',
+        }),
+        { 
+          status: 400,
+          headers: corsHeaders 
+        }
+      );
     }
 
     const { audio } = requestBody;
     if (!audio) {
       console.error('No audio data provided in request');
-      throw new Error('Audio data is required');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'No audio data provided. Please record your expense.',
+        }),
+        { 
+          status: 400,
+          headers: corsHeaders 
+        }
+      );
     }
 
     console.log('Processing request for user:', user.id);
@@ -75,7 +111,8 @@ serve(async (req) => {
       if (!validateAudioFormat('audio.webm')) {
         return new Response(
           JSON.stringify({
-            error: 'Invalid file format. Supported formats: flac, m4a, mp3, mp4, mpeg, mpga, oga, ogg, wav, webm',
+            success: false,
+            error: 'Invalid audio format. Please ensure you are using a supported format (webm, mp3, wav).',
           }), 
           { 
             status: 400,
@@ -93,7 +130,8 @@ serve(async (req) => {
         console.error('Transcription error:', transcriptionError);
         return new Response(
           JSON.stringify({
-            error: 'Failed to transcribe audio. Please ensure the file format is supported and try again.',
+            success: false,
+            error: 'Failed to transcribe audio. Please speak clearly and try again.',
           }),
           { 
             status: 500,
@@ -126,13 +164,40 @@ serve(async (req) => {
         stack: processingError.stack
       });
       
-      // Determine if this is a known error type
+      // Determine if this is a known error type and provide specific feedback
       if (processingError.message.includes('OpenAI')) {
-        throw new Error(`OpenAI API error: ${processingError.message}`);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Failed to process your expense. Please try again.',
+          }),
+          { 
+            status: 500,
+            headers: corsHeaders 
+          }
+        );
       } else if (processingError.message.includes('parse')) {
-        throw new Error(`Data processing error: ${processingError.message}`);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Could not understand the expense details. Please speak clearly and try again.',
+          }),
+          { 
+            status: 400,
+            headers: corsHeaders 
+          }
+        );
       } else {
-        throw processingError; // Re-throw unknown errors
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'An unexpected error occurred. Please try again.',
+          }),
+          { 
+            status: 500,
+            headers: corsHeaders 
+          }
+        );
       }
     }
 
@@ -143,16 +208,16 @@ serve(async (req) => {
       stack: error.stack
     });
 
-    // Return a structured error response
+    // Return a user-friendly error message
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message,
-        errorType: error.name
+        error: 'Something went wrong. Please try again later.',
+        details: error.message
       }),
       {
         headers: corsHeaders,
-        status: error.message.includes('authenticated') ? 401 : 400
+        status: error.message.includes('authenticated') ? 401 : 500
       }
     );
   }
