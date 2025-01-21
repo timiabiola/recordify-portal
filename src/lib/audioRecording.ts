@@ -4,20 +4,37 @@ import { submitExpenseAudio } from './expenseService';
 export const startRecording = async (setIsRecording: (isRecording: boolean) => void) => {
   try {
     console.log('Requesting microphone access...');
+    
+    // Specific constraints for better mobile compatibility
     const stream = await navigator.mediaDevices.getUserMedia({ 
       audio: {
         echoCancellation: true,
         noiseSuppression: true,
-        autoGainControl: true
+        autoGainControl: true,
+        sampleRate: 44100,
+        channelCount: 1
       } 
     });
+    
     console.log('Microphone access granted, initializing MediaRecorder...');
     
+    // Check for supported MIME types
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+      ? 'audio/webm;codecs=opus'
+      : 'audio/webm';
+      
+    console.log('Using MIME type:', mimeType);
+    
     const mediaRecorder = new MediaRecorder(stream, {
-      mimeType: 'audio/webm;codecs=opus'
+      mimeType,
+      audioBitsPerSecond: 128000
     });
     
-    console.log('MediaRecorder initialized with MIME type:', mediaRecorder.mimeType);
+    console.log('MediaRecorder initialized with settings:', {
+      mimeType: mediaRecorder.mimeType,
+      state: mediaRecorder.state
+    });
+    
     const audioChunks: Blob[] = [];
 
     mediaRecorder.ondataavailable = (event) => {
@@ -45,9 +62,11 @@ export const startRecording = async (setIsRecording: (isRecording: boolean) => v
           throw new Error('No audio data recorded');
         }
         
-        const audioBlob = new Blob(audioChunks, { type: 'audio/webm;codecs=opus' });
-        console.log('Created audio blob of size:', audioBlob.size);
-        console.log('Audio blob MIME type:', audioBlob.type);
+        const audioBlob = new Blob(audioChunks, { type: mimeType });
+        console.log('Created audio blob:', {
+          size: audioBlob.size,
+          type: audioBlob.type
+        });
         
         // Stop all tracks to release the microphone
         stream.getTracks().forEach(track => track.stop());
@@ -59,17 +78,35 @@ export const startRecording = async (setIsRecording: (isRecording: boolean) => v
       }
     };
 
-    // Start recording with 10ms timeslice to ensure we get data
-    mediaRecorder.start(10);
-    console.log('Started recording');
+    // Start recording with smaller timeslice for more frequent chunks
+    mediaRecorder.start(100);
+    console.log('Started recording with state:', mediaRecorder.state);
     setIsRecording(true);
     return mediaRecorder;
   } catch (error) {
     console.error('Error starting recording:', error);
-    if (error instanceof DOMException && error.name === 'NotAllowedError') {
-      toast.error('Microphone access denied. Please grant permission and try again.');
-    } else if (error instanceof DOMException && error.name === 'NotFoundError') {
-      toast.error('No microphone found. Please ensure your device has a working microphone.');
+    
+    // More specific error handling for mobile browsers
+    if (error instanceof DOMException) {
+      switch (error.name) {
+        case 'NotAllowedError':
+          toast.error('Microphone access denied. Please grant permission and try again.');
+          break;
+        case 'NotFoundError':
+          toast.error('No microphone found. Please ensure your device has a working microphone.');
+          break;
+        case 'NotReadableError':
+          toast.error('Could not start microphone. Please check if another app is using it.');
+          break;
+        case 'SecurityError':
+          toast.error('Recording requires a secure connection (HTTPS).');
+          break;
+        case 'AbortError':
+          toast.error('Recording was aborted. Please try again.');
+          break;
+        default:
+          toast.error('Failed to start recording. Please try again.');
+      }
     } else {
       toast.error('Failed to start recording. Please try again.');
     }

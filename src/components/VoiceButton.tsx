@@ -15,14 +15,18 @@ export const VoiceButton: React.FC<VoiceButtonProps> = ({ isRecording, setIsReco
     try {
       if (!isRecording) {
         console.log('Starting recording...');
+        // Stop any existing recording first
+        if (mediaRecorderRef.current) {
+          mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+        }
+        
         mediaRecorderRef.current = await startRecording(setIsRecording);
       } else {
         console.log('Stopping recording...');
         if (mediaRecorderRef.current) {
           mediaRecorderRef.current.stop();
           // Clean up the media recorder
-          const tracks = mediaRecorderRef.current.stream.getTracks();
-          tracks.forEach(track => track.stop());
+          mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
           mediaRecorderRef.current = null;
           setIsRecording(false);
         }
@@ -39,6 +43,8 @@ export const VoiceButton: React.FC<VoiceButtonProps> = ({ isRecording, setIsReco
           toast.error('No microphone found. Please check your device settings');
         } else if (error.name === 'NotReadableError') {
           toast.error('Could not access your microphone. Please check your device settings');
+        } else if (error.name === 'SecurityError') {
+          toast.error('Recording is only allowed on secure (HTTPS) connections');
         } else {
           toast.error('Failed to start recording. Please try again');
         }
