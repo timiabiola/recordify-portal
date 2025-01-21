@@ -10,15 +10,29 @@ export function parseOpenAIResponse(response: string) {
     const sanitizedResponse = sanitizeJsonResponse(response);
     console.log("Sanitized response:", sanitizedResponse);
     
-    const parsedResponse = JSON.parse(sanitizedResponse);
-    console.log("Successfully parsed response:", parsedResponse);
-    return parsedResponse;
-  } catch (parseError) {
-    console.error("Error parsing OpenAI response:", {
-      error: parseError,
-      originalResponse: response,
-      sanitizedResponse: sanitizeJsonResponse(response)
+    try {
+      const parsedResponse = JSON.parse(sanitizedResponse);
+      console.log("Successfully parsed response:", parsedResponse);
+      
+      // Validate the required fields are present
+      if (!parsedResponse.amount || !parsedResponse.description || !parsedResponse.category) {
+        throw new Error("Missing required fields in parsed response");
+      }
+      
+      return parsedResponse;
+    } catch (parseError) {
+      console.error("Error parsing OpenAI response:", {
+        error: parseError,
+        originalResponse: response,
+        sanitizedResponse: sanitizedResponse
+      });
+      throw new Error("Failed to parse response from OpenAI: " + parseError.message);
+    }
+  } catch (sanitizeError) {
+    console.error("Error sanitizing OpenAI response:", {
+      error: sanitizeError,
+      originalResponse: response
     });
-    throw new Error("Failed to parse response from OpenAI");
+    throw new Error("Failed to sanitize response from OpenAI: " + sanitizeError.message);
   }
 }
