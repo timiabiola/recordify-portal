@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import LoadingSpinner from '@/components/auth/LoadingSpinner';
 import ErrorAlert from '@/components/auth/ErrorAlert';
 import AuthForm from '@/components/auth/AuthForm';
+import { isPreviewMode } from '@/lib/auth';
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -12,72 +13,74 @@ const Auth = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const checkUser = async () => {
+    let mounted = true;
+
+    const checkSession = async () => {
       try {
+        console.log('Checking session state...');
         setIsLoading(true);
-        console.log('Checking user session...');
-        
-        // First clear any existing session if we're in preview mode
-        if (window.location.hostname.includes('preview')) {
-          console.log('Preview environment detected, clearing session...');
+
+        // In preview mode, always start with a clean slate
+        if (isPreviewMode()) {
+          console.log('Preview mode detected, clearing all sessions');
           await supabase.auth.signOut({ scope: 'global' });
+          localStorage.clear();
+          if (!mounted) return;
+          setIsLoading(false);
+          return;
         }
 
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
           console.error('Session check error:', error);
+          if (!mounted) return;
           setErrorMessage(error.message);
+          setIsLoading(false);
           return;
         }
 
         if (session) {
-          console.log('Valid session found, redirecting to home');
+          console.log('Active session found, redirecting to home');
+          if (!mounted) return;
           navigate('/');
         } else {
-          console.log('No active session found');
+          console.log('No active session');
+          if (!mounted) return;
+          setIsLoading(false);
         }
       } catch (error) {
-        console.error('Unexpected error during session check:', error);
-        setErrorMessage('An unexpected error occurred. Please try again.');
-      } finally {
+        console.error('Unexpected error:', error);
+        if (!mounted) return;
+        setErrorMessage('An unexpected error occurred');
         setIsLoading(false);
       }
     };
 
-    checkUser();
+    checkSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event, session ? 'session exists' : 'no session');
-      
+      console.log('Auth state changed:', event);
+
+      if (!mounted) return;
+
       if (event === 'SIGNED_IN') {
-        console.log('User signed in successfully');
-        // Clear any error messages
-        setErrorMessage("");
+        console.log('Sign in successful');
+        setErrorMessage('');
         navigate('/');
       }
-      
+
       if (event === 'SIGNED_OUT') {
-        console.log('User signed out');
-        setErrorMessage("");
+        console.log('Sign out detected');
+        setErrorMessage('');
         
-        // Clear session data
-        await supabase.auth.signOut();
-        
-        // In preview mode, force a full page reload
-        if (window.location.hostname.includes('preview')) {
-          console.log('Preview environment detected, forcing full reload');
+        if (isPreviewMode()) {
+          console.log('Preview mode: forcing page reload');
           window.location.href = '/auth';
           return;
         }
         
-        toast.success('Signed out successfully');
         navigate('/auth');
-      }
-
-      // Handle session errors
-      if (event === 'TOKEN_REFRESHED') {
-        console.log('Session token refreshed');
       }
 
       if (event === 'USER_UPDATED') {
@@ -86,7 +89,8 @@ const Auth = () => {
     });
 
     return () => {
-      console.log('Cleaning up auth subscription');
+      console.log('Cleaning up auth subscriptions');
+      mounted = false;
       subscription.unsubscribe();
     };
   }, [navigate]);

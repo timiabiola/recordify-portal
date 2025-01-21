@@ -1,6 +1,10 @@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+export const isPreviewMode = () => {
+  return window.location.hostname.includes('preview');
+};
+
 export const getAuthSession = async () => {
   console.log('Getting auth session...');
   const { data: { session }, error } = await supabase.auth.getSession();
@@ -12,7 +16,6 @@ export const getAuthSession = async () => {
   
   if (!session) {
     console.error('No active session found');
-    toast.error('Please sign in to record expenses');
     throw new Error('Not authenticated');
   }
   
@@ -23,25 +26,19 @@ export const getAuthSession = async () => {
 export const signOut = async () => {
   console.log('Starting sign out process...');
   try {
-    // In preview mode, we need to be more aggressive with session clearing
-    if (window.location.hostname.includes('preview')) {
-      console.log('Preview environment detected, clearing all sessions');
-      await supabase.auth.signOut({
-        scope: 'global'
-      });
+    if (isPreviewMode()) {
+      console.log('Preview mode detected, performing global sign out');
+      await supabase.auth.signOut({ scope: 'global' });
+      localStorage.clear(); // Clear all local storage in preview mode
     } else {
-      console.log('Production environment, normal sign out');
-      await supabase.auth.signOut({
-        scope: 'local'
-      });
+      console.log('Production mode, performing local sign out');
+      await supabase.auth.signOut();
     }
     
-    // Clear any stored session data
-    localStorage.removeItem('supabase.auth.token');
-    
     console.log('Sign out successful');
+    toast.success('Signed out successfully');
   } catch (error) {
-    console.error('Exception in signOut function:', error);
+    console.error('Error during sign out:', error);
     toast.error('Error signing out. Please try again.');
     throw error;
   }
