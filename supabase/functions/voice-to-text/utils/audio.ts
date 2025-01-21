@@ -12,8 +12,8 @@ export function processBase64Chunks(base64String: string, chunkSize = 32768) {
     
     // Remove the data URL prefix if present and extract MIME type
     let cleanBase64 = base64String;
-    let mimeType = 'audio/wav'; // Default MIME type
-    let format = 'wav'; // Default format
+    let mimeType = 'audio/webm'; // Default MIME type for recording
+    let format = 'webm'; // Default format
     
     const matches = base64String.match(/^data:(.+);base64,(.+)$/);
     if (matches) {
@@ -66,7 +66,8 @@ export function processBase64Chunks(base64String: string, chunkSize = 32768) {
     }
 
     console.log('Successfully combined all chunks into final array');
-    return { data: result, mimeType: 'audio/wav', format: 'wav' };
+    // Return with original MIME type to maintain format consistency
+    return { data: result, mimeType, format };
   } catch (error) {
     console.error('Error in processBase64Chunks:', {
       error: error.message,
