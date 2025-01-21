@@ -14,6 +14,7 @@ interface ExpenseData {
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -27,24 +28,32 @@ serve(async (req) => {
     const configuration = new Configuration({ apiKey: OPENAI_API_KEY })
     const openai = new OpenAIApi(configuration)
 
-    // Get the base64 audio data from the request
+    // Get request body and validate
     const { audio, userId } = await req.json()
     
     if (!audio) {
       throw new Error('No audio data provided')
     }
 
-    // Convert base64 to Uint8Array
-    const base64Data = audio.split(',')[1]
-    const binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0))
+    console.log('Processing audio data...');
 
-    // Create a Blob from the Uint8Array
-    const audioBlob = new Blob([binaryData], { type: 'audio/webm' })
+    // Extract the base64 data (remove data URL prefix if present)
+    const base64Data = audio.split(',')[1] || audio;
+    
+    // Convert base64 to binary
+    const binaryStr = atob(base64Data);
+    const bytes = new Uint8Array(binaryStr.length);
+    for (let i = 0; i < binaryStr.length; i++) {
+      bytes[i] = binaryStr.charCodeAt(i);
+    }
 
-    // Create form data for the Whisper API
-    const formData = new FormData()
-    formData.append('file', audioBlob, 'audio.webm')
-    formData.append('model', 'whisper-1')
+    // Create blob and form data
+    const audioBlob = new Blob([bytes], { type: 'audio/webm' });
+    const formData = new FormData();
+    formData.append('file', audioBlob, 'audio.webm');
+    formData.append('model', 'whisper-1');
+
+    console.log('Sending to Whisper API...');
 
     // Get transcription from Whisper API
     const transcriptionResponse = await openai.createTranscription(
@@ -54,8 +63,9 @@ serve(async (req) => {
     )
 
     const transcription = transcriptionResponse.data.text
+    console.log('Transcription received:', transcription);
 
-    // Use GPT to parse the transcription into structured data
+    // Use GPT to parse the transcription
     const parseResponse = await openai.createChatCompletion({
       model: "gpt-3.5-turbo",
       messages: [
@@ -74,11 +84,13 @@ serve(async (req) => {
     })
 
     const parsedText = parseResponse.data.choices[0].message?.content || ''
-    let expenseData: ExpenseData;
+    console.log('Parsed expense data:', parsedText);
     
+    let expenseData: ExpenseData;
     try {
       expenseData = JSON.parse(parsedText)
     } catch (e) {
+      console.error('Failed to parse expense data:', e);
       throw new Error('Failed to parse expense data')
     }
 
@@ -88,6 +100,8 @@ serve(async (req) => {
         Deno.env.get('SUPABASE_URL') ?? '',
         Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
       )
+
+      console.log('Saving expense to database...');
 
       // First, ensure the category exists or create it
       const { data: categoryData, error: categoryError } = await supabaseClient
@@ -121,7 +135,10 @@ serve(async (req) => {
           transcription: transcription
         })
 
-      if (expenseError) throw expenseError
+      if (expenseError) {
+        console.error('Error saving expense:', expenseError);
+        throw expenseError;
+      }
     }
 
     return new Response(
@@ -134,7 +151,7 @@ serve(async (req) => {
       },
     )
   } catch (err) {
-    console.error(err)
+    console.error('Edge function error:', err);
     return new Response(
       JSON.stringify({ error: err.message }),
       {

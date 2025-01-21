@@ -46,6 +46,11 @@ const Auth = () => {
     }
   };
 
+  const handleError = (error: AuthError) => {
+    console.error('Auth error:', error);
+    setErrorMessage(getErrorMessage(error));
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md space-y-4">
@@ -75,10 +80,7 @@ const Auth = () => {
               },
             }}
             providers={[]}
-            onError={(error) => {
-              console.error('Auth error:', error);
-              setErrorMessage(getErrorMessage(error));
-            }}
+            onError={handleError}
           />
         </div>
       </div>
