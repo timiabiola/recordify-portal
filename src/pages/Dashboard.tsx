@@ -126,7 +126,11 @@ const Dashboard = () => {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              <span>Total Expenses: ${totalAmount.toFixed(2)}</span>
+              <span>
+                {selectedCategory === 'all' 
+                  ? `Total Expenses: $${totalAmount.toFixed(2)}`
+                  : `${formatCategoryName(categories?.find(c => c.id === selectedCategory)?.name || '')} Expenses: $${totalAmount.toFixed(2)}`}
+              </span>
               {selectedCategory !== 'all' && categories?.find(c => c.id === selectedCategory) && (
                 <span className="flex items-center gap-2 text-muted-foreground text-sm">
                   {getCategoryIcon(categories.find(c => c.id === selectedCategory)?.name || '')}
