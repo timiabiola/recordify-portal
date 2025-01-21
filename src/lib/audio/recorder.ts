@@ -24,7 +24,8 @@ export const createRecorder = (
   stream: MediaStream,
   onDataAvailable: (event: BlobEvent) => void,
   onStop: () => void,
-  onError: (event: Event) => void
+  onError: (event: Event) => void,
+  state: AudioRecorderState
 ) => {
   const mediaRecorder = new MediaRecorder(stream, {
     mimeType: 'audio/wav',

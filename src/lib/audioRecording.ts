@@ -4,9 +4,9 @@ import { initializeRecorder, createRecorder } from './audio/recorder';
 import { handleAudioError } from './audio/errorHandling';
 import type { AudioRecorderState } from './audio/types';
 
-export const startRecording = async ({ isRecording, setIsRecording }: AudioRecorderState) => {
+export const startRecording = async (state: AudioRecorderState) => {
   try {
-    if (isRecording) {
+    if (state.isRecording) {
       console.warn('Recording already in progress');
       return null;
     }
@@ -49,14 +49,15 @@ export const startRecording = async ({ isRecording, setIsRecording }: AudioRecor
       (event) => {
         console.error('MediaRecorder error:', event);
         toast.error('Recording error occurred. Please try again.');
-        setIsRecording(false);
+        state.setIsRecording(false);
         stream.getTracks().forEach(track => track.stop());
-      }
+      },
+      state
     );
 
     mediaRecorder.start(100);
     console.log('Started recording with state:', mediaRecorder.state);
-    setIsRecording(true);
+    state.setIsRecording(true);
     
     return mediaRecorder;
   } catch (error) {

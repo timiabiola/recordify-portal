@@ -25,7 +25,7 @@ const Index = () => {
       }
 
       console.log('Starting recording process...');
-      const recorder = await startRecording(setIsRecording);
+      const recorder = await startRecording({ isRecording, setIsRecording });
       mediaRecorder.current = recorder;
       
       toast({
