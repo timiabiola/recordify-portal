@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export const startRecording = async ({ 
   isRecording, 
@@ -60,22 +61,19 @@ export const startRecording = async ({
             const base64Audio = reader.result as string;
             console.log('Audio converted to base64, length:', base64Audio.length);
 
-            const response = await fetch('/api/voice-to-text', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ audio: base64Audio }),
+            // Call Supabase Edge Function instead of /api endpoint
+            const { data, error } = await supabase.functions.invoke('voice-to-text', {
+              body: { audio: base64Audio.split(',')[1] }
             });
 
-            if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`);
+            if (error) {
+              console.error('Error calling voice-to-text function:', error);
+              throw error;
             }
 
-            const data = await response.json();
             console.log('Voice-to-text response:', data);
-            
             toast.success('Audio processed successfully!');
+
           } catch (error) {
             console.error('Error processing audio:', error);
             toast.error('Failed to process audio. Please try again.');
