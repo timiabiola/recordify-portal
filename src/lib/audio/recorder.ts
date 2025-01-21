@@ -27,9 +27,9 @@ export const createRecorder = (
   onError: (event: Event) => void,
   state: AudioRecorderState
 ) => {
-  // Using audio/webm for recording as it's widely supported
+  // Using audio/wav for recording
   const mediaRecorder = new MediaRecorder(stream, {
-    mimeType: 'audio/webm',
+    mimeType: 'audio/wav',
     audioBitsPerSecond: AUDIO_CONSTRAINTS.audio.audioBitsPerSecond,
   });
 

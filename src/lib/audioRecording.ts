@@ -31,8 +31,8 @@ export const startRecording = async (state: AudioRecorderState) => {
             throw new Error('No audio data recorded');
           }
           
-          // Create a blob with webm format
-          const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+          // Create a blob with WAV format
+          const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
           console.log('Created audio blob:', {
             size: audioBlob.size,
             type: audioBlob.type
