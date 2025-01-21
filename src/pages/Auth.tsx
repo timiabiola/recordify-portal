@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { AuthError } from '@supabase/supabase-js';
+import { toast } from 'sonner';
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -21,16 +22,27 @@ const Auth = () => {
     checkUser();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event);
+      console.log('Auth state changed:', event, session ? 'session exists' : 'no session');
+      
       if (event === 'SIGNED_IN') {
         navigate('/');
       }
       if (event === 'SIGNED_OUT') {
+        console.log('User signed out successfully');
         setErrorMessage("");
+        toast.success('Signed out successfully');
+      }
+      // Handle sign out error
+      if (event === 'SIGN_OUT_ERROR') {
+        console.error('Error signing out:', session);
+        toast.error('Error signing out. Please try again.');
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      console.log('Cleaning up auth subscription');
+      subscription.unsubscribe();
+    };
   }, [navigate]);
 
   const getErrorMessage = (error: AuthError) => {
