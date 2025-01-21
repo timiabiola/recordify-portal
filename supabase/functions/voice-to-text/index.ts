@@ -16,7 +16,13 @@ serve(async (req) => {
   try {
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
     if (!OPENAI_API_KEY) {
-      throw new Error('Missing OpenAI API Key')
+      return new Response(
+        JSON.stringify({ error: 'Missing OpenAI API Key' }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
     }
 
     const configuration = new Configuration({ apiKey: OPENAI_API_KEY })
