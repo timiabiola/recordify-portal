@@ -4,7 +4,6 @@ import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import type { AuthError } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 
 const Auth = () => {
@@ -32,6 +31,8 @@ const Auth = () => {
         console.log('User signed out successfully');
         setErrorMessage("");
         toast.success('Signed out successfully');
+        // Ensure we're on the auth page after sign out
+        navigate('/auth');
       }
     });
 
@@ -40,19 +41,6 @@ const Auth = () => {
       subscription.unsubscribe();
     };
   }, [navigate]);
-
-  const getErrorMessage = (error: AuthError) => {
-    switch (error.message) {
-      case 'Invalid login credentials':
-        return 'Invalid email or password. Please check your credentials and try again.';
-      case 'Email not confirmed':
-        return 'Please verify your email address before signing in.';
-      case 'User not found':
-        return 'No user found with these credentials.';
-      default:
-        return error.message;
-    }
-  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
