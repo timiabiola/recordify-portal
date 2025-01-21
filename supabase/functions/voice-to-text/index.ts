@@ -57,7 +57,7 @@ serve(async (req) => {
     const expense = await saveExpense(supabaseAdmin, user.id, expenseDetails, text);
     console.log('Expense saved successfully:', expense);
 
-    return createSuccessResponse(expense);
+    return createSuccessResponse({ expense });
 
   } catch (error) {
     console.error('Edge function error:', {

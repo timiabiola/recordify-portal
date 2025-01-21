@@ -1,47 +1,60 @@
 import { corsHeaders } from '../config.ts';
 
-export async function parseRequestBody(req: Request) {
+export const parseRequestBody = async (req: Request) => {
   try {
     const body = await req.json();
-    console.log('Request body parsed successfully');
+    console.log('Received request body:', {
+      hasAudio: !!body?.audio,
+      audioLength: body?.audio?.length
+    });
     
-    if (!body.audio) {
-      console.error('No audio data provided in request');
-      throw new Error('No audio data provided. Please record your expense.');
+    if (!body?.audio) {
+      throw new Error('Audio data is required');
     }
     
     return body;
   } catch (error) {
-    console.error('Failed to parse request body:', error);
-    throw new Error('Invalid request format. Please try again.');
+    console.error('Error parsing request body:', error);
+    throw new Error('Invalid request body: ' + error.message);
   }
-}
+};
 
-export function handleCorsRequest() {
-  console.log('Handling CORS preflight request');
-  return new Response('ok', { headers: corsHeaders });
-}
+export const handleCorsRequest = () => {
+  return new Response(null, {
+    status: 204,
+    headers: corsHeaders,
+  });
+};
 
-export function createErrorResponse(error: Error, status = 500) {
-  console.error('Creating error response:', error);
+export const createErrorResponse = (error: Error, status = 500) => {
+  const response = {
+    success: false,
+    error: error.message
+  };
+  
+  console.error('Creating error response:', response);
+  
   return new Response(
-    JSON.stringify({
-      success: false,
-      error: error.message || 'An unexpected error occurred.',
-    }),
+    JSON.stringify(response),
     { 
       status,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     }
   );
-}
+};
 
-export function createSuccessResponse(data: unknown) {
+export const createSuccessResponse = (data: any) => {
+  const response = {
+    success: true,
+    ...data
+  };
+  
+  console.log('Creating success response:', response);
+  
   return new Response(
-    JSON.stringify({
-      success: true,
-      expense: data
-    }),
-    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    JSON.stringify(response),
+    { 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    }
   );
-}
+};
