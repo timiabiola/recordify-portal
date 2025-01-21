@@ -63,13 +63,6 @@ export type Database = {
             referencedRelation: "categories"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "expenses_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
         ]
       }
       profiles: {

@@ -21,11 +21,35 @@ serve(async (req) => {
   }
 
   try {
-    const { audio, userId } = await req.json();
-    console.log('Processing request for user:', userId);
+    // Initialize Supabase client with service role key for admin access
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    // Get the authorization header
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
+      console.error('No authorization header found');
+      throw new Error('Not authenticated');
+    }
+
+    // Verify the JWT token
+    const jwt = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(jwt);
     
-    if (!audio || !userId) {
-      throw new Error('Audio and userId are required');
+    if (authError || !user) {
+      console.error('Authentication error:', authError);
+      throw new Error('Invalid authentication');
+    }
+
+    console.log('Authenticated user:', user.id);
+
+    const { audio } = await req.json();
+    console.log('Processing request for user:', user.id);
+    
+    if (!audio) {
+      throw new Error('Audio data is required');
     }
 
     // For testing, simulate expense extraction
@@ -35,12 +59,6 @@ serve(async (req) => {
       description: "Test expense from voice recording",
       category: "food"
     };
-
-    // Initialize Supabase client with service role key
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
 
     // First, ensure the category exists or create it
     console.log('Looking up category:', mockExpense.category);
@@ -70,15 +88,15 @@ serve(async (req) => {
 
     console.log('Using category ID:', categoryId);
 
-    // Create the expense record
+    // Create the expense record using the authenticated user's ID
     const { data: expense, error: expenseError } = await supabaseAdmin
       .from('expenses')
       .insert({
-        user_id: userId,
+        user_id: user.id,
         category_id: categoryId,
         description: mockExpense.description,
         amount: mockExpense.amount,
-        transcription: "Mock transcription" // In real implementation, this would be the actual transcription
+        transcription: "Mock transcription"
       })
       .select()
       .single();
