@@ -8,6 +8,12 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log('Request received:', {
+    method: req.method,
+    url: req.url,
+    headers: Object.fromEntries(req.headers.entries())
+  });
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     console.log('Handling CORS preflight request');
@@ -15,33 +21,20 @@ serve(async (req) => {
   }
 
   try {
-    // Log request details
-    console.log('Request received:', {
-      method: req.method,
-      contentType: req.headers.get('content-type'),
-      url: req.url
-    });
-
     // Parse and validate request body
-    const requestText = await req.text();
-    console.log('Request body length:', requestText.length);
-    console.log('Request body preview:', requestText.substring(0, 200));
+    const requestBody = await req.text();
+    console.log('Request body length:', requestBody.length);
+    console.log('Request body preview:', requestBody.substring(0, 100) + '...');
 
     let parsedBody;
     try {
-      parsedBody = JSON.parse(requestText);
-      console.log('Parsed request body keys:', Object.keys(parsedBody));
+      parsedBody = JSON.parse(requestBody);
+      console.log('Request body parsed successfully. Keys:', Object.keys(parsedBody));
     } catch (parseError) {
-      console.error('JSON parsing error:', parseError.message);
+      console.error('Failed to parse request body:', parseError);
       return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'Invalid JSON format: ' + parseError.message
-        }),
-        {
-          headers: corsHeaders,
-          status: 400
-        }
+        JSON.stringify({ error: 'Invalid JSON format: ' + parseError.message }),
+        { headers: corsHeaders, status: 400 }
       );
     }
 
@@ -53,21 +46,17 @@ serve(async (req) => {
       
       console.error('Missing required fields:', missingFields);
       return new Response(
-        JSON.stringify({
-          success: false,
-          error: `Missing required fields: ${missingFields.join(', ')}`
-        }),
-        {
-          headers: corsHeaders,
-          status: 400
-        }
+        JSON.stringify({ error: `Missing required fields: ${missingFields.join(', ')}` }),
+        { headers: corsHeaders, status: 400 }
       );
     }
 
     // Process the audio data
     console.log('Processing audio data...');
+    console.log('Audio data length:', parsedBody.audio.length);
+    console.log('User ID:', parsedBody.userId);
     
-    // For now, return a test response
+    // For testing, return a mock response
     console.log('Returning test response');
     return new Response(
       JSON.stringify({
@@ -78,22 +67,20 @@ serve(async (req) => {
           category: "food"
         }
       }),
-      {
-        headers: corsHeaders,
-        status: 200
-      }
+      { headers: corsHeaders }
     );
 
   } catch (error) {
     console.error('Edge function error:', {
       message: error.message,
-      stack: error.stack
+      stack: error.stack,
+      name: error.name
     });
     
     return new Response(
       JSON.stringify({
-        success: false,
-        error: 'Internal server error: ' + error.message
+        error: 'Internal server error: ' + error.message,
+        details: error.stack
       }),
       {
         headers: corsHeaders,
