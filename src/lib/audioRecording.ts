@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export async function startRecording({ isRecording, setIsRecording }: { 
   isRecording: boolean; 
@@ -33,16 +34,22 @@ export async function startRecording({ isRecording, setIsRecording }: {
 
           if (error) {
             console.error('Error processing audio:', error);
+            toast.error('Failed to process audio. Please try again.');
             throw error;
           }
 
           console.log('Voice-to-text response:', data);
           
-          // Refresh the page to show new expenses
-          window.location.reload();
+          if (data?.success && data?.expenses) {
+            toast.success('Expenses recorded successfully!');
+            // Refresh the page to show new expenses
+            window.location.reload();
+          } else {
+            toast.error('Failed to process expenses. Please try again.');
+          }
         } catch (error) {
           console.error('Error in voice-to-text processing:', error);
-          throw error;
+          toast.error('Failed to process audio. Please try again.');
         }
       };
     };
@@ -52,6 +59,7 @@ export async function startRecording({ isRecording, setIsRecording }: {
     return mediaRecorder;
   } catch (error) {
     console.error('Error starting recording:', error);
+    toast.error('Could not access microphone. Please check permissions.');
     throw error;
   }
 }
