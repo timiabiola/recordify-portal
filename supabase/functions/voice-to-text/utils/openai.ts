@@ -1,90 +1,57 @@
-import { Configuration, OpenAIApi } from 'https://esm.sh/openai@3.3.0';
+import OpenAI from 'https://esm.sh/openai@4.20.1';
 
-export const createOpenAIClient = (apiKey: string) => {
-  if (!apiKey) {
-    throw new Error('Missing OpenAI API Key');
-  }
-  const configuration = new Configuration({ apiKey });
-  return new OpenAIApi(configuration);
-};
-
-export const transcribeAudio = async (openai: OpenAIApi, audioBuffer: Uint8Array) => {
+export async function transcribeAudio(audioBlob: Blob) {
+  console.log('Sending audio to Whisper API...');
+  
   const formData = new FormData();
-  const audioBlob = new Blob([audioBuffer], { type: 'audio/webm' });
   formData.append('file', audioBlob, 'audio.webm');
   formData.append('model', 'whisper-1');
 
-  console.log('Sending request to Whisper API...');
-  
-  try {
-    const transcriptionResponse = await openai.createTranscription(
-      // @ts-ignore: FormData is not properly typed in OpenAI's types
-      formData,
-      'whisper-1'
-    );
+  const whisperResponse = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+    },
+    body: formData,
+  });
 
-    if (!transcriptionResponse?.data?.text) {
-      throw new Error('Invalid response from Whisper API');
-    }
-
-    console.log('Transcription successful:', transcriptionResponse.data.text);
-
-    return transcriptionResponse.data.text;
-  } catch (error) {
-    console.error('Transcription error:', {
-      message: error?.message,
-      response: error?.response?.data
-    });
-    throw new Error('Failed to transcribe audio: ' + error.message);
+  if (!whisperResponse.ok) {
+    throw new Error(`Whisper API error: ${await whisperResponse.text()}`);
   }
-};
 
-export const parseExpenseWithGPT = async (openai: OpenAIApi, transcription: string) => {
-  console.log('Sending transcription to GPT API:', transcription);
-  
-  try {
-    const parseResponse = await openai.createChatCompletion({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: `You are a helpful assistant that extracts expense information from text. 
-          Extract the amount (as a number), description (as text), and category (must be one of: food, transport, entertainment, shopping, utilities, other).
-          If a category isn't explicitly mentioned, infer it from the description.
-          Return only a JSON object with these three fields.`
-        },
-        {
-          role: "user",
-          content: transcription
-        }
-      ]
-    });
+  const { text } = await whisperResponse.json();
+  console.log('Transcribed text:', text);
+  return text;
+}
 
-    const parsedText = parseResponse?.data?.choices?.[0]?.message?.content;
-    if (!parsedText) {
-      throw new Error('Invalid response from GPT API');
-    }
+export async function extractExpenseDetails(text: string) {
+  const openai = new OpenAI({
+    apiKey: Deno.env.get('OPENAI_API_KEY'),
+  });
 
-    console.log('GPT response received:', parsedText);
+  const prompt = `Extract expense information from this text. Return a JSON object with amount (number), description (string), and category (string). Categories should be one of: food, entertainment, transport, shopping, utilities, other. Text: "${text}"`;
 
-    try {
-      const expenseData = JSON.parse(parsedText);
-      if (!expenseData?.amount || !expenseData?.description || !expenseData?.category) {
-        throw new Error('Missing required fields in parsed expense data');
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages: [
+      {
+        role: "system",
+        content: "You are a helpful assistant that extracts expense information from text and returns it in a consistent format."
+      },
+      {
+        role: "user",
+        content: prompt
       }
-      return expenseData;
-    } catch (e) {
-      console.error('JSON parsing error:', {
-        message: e?.message,
-        parsedText
-      });
-      throw new Error('Failed to parse expense data');
-    }
+    ],
+    temperature: 0.1,
+  });
+
+  try {
+    const response = completion.choices[0].message.content;
+    console.log("OpenAI response:", response);
+    return JSON.parse(response);
   } catch (error) {
-    console.error('GPT API error:', {
-      message: error?.message,
-      response: error?.response?.data
-    });
-    throw new Error('Failed to parse expense with GPT: ' + error.message);
+    console.error("Error parsing OpenAI response:", error);
+    throw new Error("Failed to parse expense details");
   }
-};
+}

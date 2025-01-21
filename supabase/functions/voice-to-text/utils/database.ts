@@ -1,68 +1,52 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-export const saveExpenseToDatabase = async (
-  supabaseClient: any,
-  userId: string,
-  expenseData: any,
-  transcription: string
-) => {
-  try {
-    console.log('Saving expense:', JSON.stringify({
-      userId,
-      expenseData,
-      transcription
-    }));
+export async function saveExpense(supabaseAdmin: any, userId: string, expenseDetails: any, text: string) {
+  // First, ensure the category exists or create it
+  console.log('Looking up category:', expenseDetails.category);
+  const { data: categoryData, error: categoryError } = await supabaseAdmin
+    .from('categories')
+    .select('id')
+    .eq('name', expenseDetails.category)
+    .single();
 
-    // First, ensure the category exists or create it
-    const { data: categoryData, error: categoryError } = await supabaseClient
+  let categoryId;
+  if (categoryError) {
+    console.log('Category not found, creating new category');
+    const { data: newCategory, error: createCategoryError } = await supabaseAdmin
       .from('categories')
-      .select('id')
-      .eq('name', expenseData.category)
+      .insert({ name: expenseDetails.category })
+      .select()
       .single();
 
-    let categoryId;
-    if (categoryError) {
-      console.log('Category not found, creating new category:', expenseData.category);
-      // Category doesn't exist, create it
-      const { data: newCategory, error: createCategoryError } = await supabaseClient
-        .from('categories')
-        .insert({ name: expenseData.category })
-        .select()
-        .single();
-
-      if (createCategoryError) {
-        console.error('Error creating category:', JSON.stringify(createCategoryError));
-        throw new Error('Failed to create category');
-      }
-      categoryId = newCategory.id;
-    } else {
-      categoryId = categoryData.id;
+    if (createCategoryError) {
+      console.error('Error creating category:', createCategoryError);
+      throw new Error('Failed to create category');
     }
-
-    console.log('Using category ID:', categoryId);
-
-    // Save the expense
-    const { error: expenseError } = await supabaseClient
-      .from('expenses')
-      .insert({
-        user_id: userId,
-        category_id: categoryId,
-        description: expenseData.description,
-        amount: expenseData.amount,
-        transcription: transcription
-      });
-
-    if (expenseError) {
-      console.error('Error saving expense:', JSON.stringify(expenseError));
-      throw new Error('Failed to save expense');
-    }
-
-    console.log('Expense saved successfully');
-  } catch (error) {
-    console.error('Database operation failed:', JSON.stringify({
-      message: error?.message,
-      details: error?.details
-    }));
-    throw error;
+    categoryId = newCategory.id;
+  } else {
+    categoryId = categoryData.id;
   }
-};
+
+  console.log('Using category ID:', categoryId);
+
+  // Create the expense record
+  const { data: expense, error: expenseError } = await supabaseAdmin
+    .from('expenses')
+    .insert({
+      user_id: userId,
+      category_id: categoryId,
+      description: expenseDetails.description,
+      amount: expenseDetails.amount,
+      transcription: text
+    })
+    .select()
+    .single();
+
+  if (expenseError) {
+    console.error('Error creating expense:', expenseError);
+    throw expenseError;
+  }
+
+  console.log('Expense created successfully:', expense);
+  return expense;
+}
