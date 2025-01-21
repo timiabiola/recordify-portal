@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { VoiceButton } from '@/components/VoiceButton';
+import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { BarChart3 } from 'lucide-react';
 
 const Index = () => {
   const [isRecording, setIsRecording] = useState(false);
@@ -19,6 +22,15 @@ const Index = () => {
             isRecording={isRecording} 
             setIsRecording={setIsRecording} 
           />
+        </div>
+
+        <div className="mt-8">
+          <Link to="/dashboard">
+            <Button variant="outline" className="gap-2">
+              <BarChart3 className="w-4 h-4" />
+              View Dashboard
+            </Button>
+          </Link>
         </div>
       </div>
     </div>
