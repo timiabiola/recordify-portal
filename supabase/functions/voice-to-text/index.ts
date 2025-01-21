@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,77 +15,98 @@ serve(async (req) => {
     headers: Object.fromEntries(req.headers.entries())
   });
 
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     console.log('Handling CORS preflight request');
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    // Parse and validate request body
-    const requestBody = await req.text();
-    console.log('Request body length:', requestBody.length);
-    console.log('Request body preview:', requestBody.substring(0, 100) + '...');
-
-    let parsedBody;
-    try {
-      parsedBody = JSON.parse(requestBody);
-      console.log('Request body parsed successfully. Keys:', Object.keys(parsedBody));
-    } catch (parseError) {
-      console.error('Failed to parse request body:', parseError);
-      return new Response(
-        JSON.stringify({ error: 'Invalid JSON format: ' + parseError.message }),
-        { headers: corsHeaders, status: 400 }
-      );
-    }
-
-    // Validate required fields
-    if (!parsedBody.audio || !parsedBody.userId) {
-      const missingFields = [];
-      if (!parsedBody.audio) missingFields.push('audio');
-      if (!parsedBody.userId) missingFields.push('userId');
-      
-      console.error('Missing required fields:', missingFields);
-      return new Response(
-        JSON.stringify({ error: `Missing required fields: ${missingFields.join(', ')}` }),
-        { headers: corsHeaders, status: 400 }
-      );
-    }
-
-    // Process the audio data
-    console.log('Processing audio data...');
-    console.log('Audio data length:', parsedBody.audio.length);
-    console.log('User ID:', parsedBody.userId);
+    const { audio, userId } = await req.json();
+    console.log('Processing request for user:', userId);
     
-    // For testing, return a mock response
-    console.log('Returning test response');
+    if (!audio || !userId) {
+      throw new Error('Audio and userId are required');
+    }
+
+    // For testing, simulate expense extraction
+    // In a real implementation, this would use OpenAI's Whisper API
+    const mockExpense = {
+      amount: 25.99,
+      description: "Test expense from voice recording",
+      category: "food"
+    };
+
+    // Initialize Supabase client with service role key
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    // First, ensure the category exists or create it
+    console.log('Looking up category:', mockExpense.category);
+    const { data: categoryData, error: categoryError } = await supabaseAdmin
+      .from('categories')
+      .select('id')
+      .eq('name', mockExpense.category)
+      .single();
+
+    let categoryId;
+    if (categoryError) {
+      console.log('Category not found, creating new category');
+      const { data: newCategory, error: createCategoryError } = await supabaseAdmin
+        .from('categories')
+        .insert({ name: mockExpense.category })
+        .select()
+        .single();
+
+      if (createCategoryError) {
+        console.error('Error creating category:', createCategoryError);
+        throw new Error('Failed to create category');
+      }
+      categoryId = newCategory.id;
+    } else {
+      categoryId = categoryData.id;
+    }
+
+    console.log('Using category ID:', categoryId);
+
+    // Create the expense record
+    const { data: expense, error: expenseError } = await supabaseAdmin
+      .from('expenses')
+      .insert({
+        user_id: userId,
+        category_id: categoryId,
+        description: mockExpense.description,
+        amount: mockExpense.amount,
+        transcription: "Mock transcription" // In real implementation, this would be the actual transcription
+      })
+      .select()
+      .single();
+
+    if (expenseError) {
+      console.error('Error creating expense:', expenseError);
+      throw expenseError;
+    }
+
+    console.log('Expense created successfully:', expense);
+
     return new Response(
       JSON.stringify({
         success: true,
-        expense: {
-          amount: 10.00,
-          description: "Test expense",
-          category: "food"
-        }
+        expense: expense
       }),
       { headers: corsHeaders }
     );
 
   } catch (error) {
-    console.error('Edge function error:', {
-      message: error.message,
-      stack: error.stack,
-      name: error.name
-    });
-    
+    console.error('Edge function error:', error);
     return new Response(
       JSON.stringify({
-        error: 'Internal server error: ' + error.message,
-        details: error.stack
+        error: error.message
       }),
       {
         headers: corsHeaders,
-        status: 500
+        status: 400
       }
     );
   }
