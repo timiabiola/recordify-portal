@@ -26,7 +26,6 @@ serve(async (req) => {
     const requestData = await req.json()
     console.log('Processing request:', {
       hasAudio: !!requestData.audio,
-      audioLength: requestData.audio?.length,
       userId: requestData.userId
     })
 
@@ -34,13 +33,13 @@ serve(async (req) => {
       throw new Error('Audio data and userId are required')
     }
 
-    // Remove data URL prefix if present and validate base64
-    const base64Data = requestData.audio.replace(/^data:audio\/\w+;base64,/, '')
+    // Clean the base64 string
+    const base64Data = requestData.audio.split(',')[1] || requestData.audio
     if (!base64Data) {
       throw new Error('Invalid audio data format')
     }
-    
-    // Create binary data from base64 with validation
+
+    // Create binary data from base64
     let audioBuffer: Uint8Array
     try {
       const binaryString = atob(base64Data)
@@ -51,11 +50,7 @@ serve(async (req) => {
       console.log('Audio buffer created successfully, size:', audioBuffer.length)
     } catch (e) {
       console.error('Base64 decoding error:', e)
-      throw new Error('Failed to decode audio data: ' + e.message)
-    }
-
-    if (audioBuffer.length === 0) {
-      throw new Error('Empty audio buffer')
+      throw new Error('Failed to decode audio data')
     }
 
     // Create form data for OpenAI API
@@ -73,7 +68,7 @@ serve(async (req) => {
       'whisper-1'
     )
 
-    if (!transcriptionResponse.data || !transcriptionResponse.data.text) {
+    if (!transcriptionResponse.data?.text) {
       throw new Error('Invalid response from Whisper API')
     }
 
@@ -98,11 +93,11 @@ serve(async (req) => {
       ]
     })
 
-    if (!parseResponse.data?.choices?.[0]?.message?.content) {
+    const parsedText = parseResponse.data?.choices?.[0]?.message?.content
+    if (!parsedText) {
       throw new Error('Invalid response from GPT API')
     }
 
-    const parsedText = parseResponse.data.choices[0].message.content
     console.log('GPT response:', parsedText)
     
     let expenseData
@@ -114,7 +109,7 @@ serve(async (req) => {
       console.log('Parsed expense data:', expenseData)
     } catch (e) {
       console.error('JSON parsing error:', e)
-      throw new Error('Failed to parse expense data: ' + e.message)
+      throw new Error('Failed to parse expense data')
     }
 
     // Save to database
@@ -142,8 +137,7 @@ serve(async (req) => {
         .single()
 
       if (createCategoryError) {
-        console.error('Error creating category:', createCategoryError)
-        throw new Error('Failed to create category: ' + createCategoryError.message)
+        throw new Error('Failed to create category')
       }
       categoryId = newCategory.id
     } else {
@@ -162,8 +156,7 @@ serve(async (req) => {
       })
 
     if (expenseError) {
-      console.error('Error saving expense:', expenseError)
-      throw new Error('Failed to save expense: ' + expenseError.message)
+      throw new Error('Failed to save expense')
     }
     
     console.log('Expense saved successfully')
