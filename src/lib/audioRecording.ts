@@ -35,32 +35,23 @@ export const startRecording = async (setIsRecording: (value: boolean) => void) =
 
 const sendAudioToSupabase = async (audioBlob: Blob) => {
   try {
-    // Get current user
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      throw new Error('User not authenticated');
-    }
-
-    // Convert blob to base64
     const buffer = await audioBlob.arrayBuffer();
     const base64Audio = btoa(
       String.fromCharCode(...new Uint8Array(buffer))
     );
-
-    // Send to Edge Function
-    const { data, error } = await supabase.functions.invoke('voice-to-text', {
-      body: { 
-        audio: base64Audio,
-        userId: user.id
-      }
+    
+    console.log('Sending audio data:', { 
+      size: base64Audio.length,
+      sample: base64Audio.substring(0, 100) 
     });
 
-    if (error) {
-      console.error('Edge function error:', error);
-      throw error;
-    }
+    const { data, error } = await supabase.functions.invoke('voice-to-text', {
+      body: JSON.stringify({ audio: base64Audio }),
+    });
 
-    console.log('Processed audio data:', data);
+    console.log('Response:', { data, error });
+    
+    if (error) throw error;
     return data;
   } catch (error) {
     console.error('Error sending audio to Supabase:', error);
