@@ -39,7 +39,7 @@ export async function extractExpenseDetails(text: string) {
     console.log('Extracting expense details from:', text);
     
     const completion = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
@@ -47,21 +47,23 @@ export async function extractExpenseDetails(text: string) {
           Extract the amount and description, and categorize the expense into one of these categories: 
           Food, Transportation, Entertainment, Shopping, Bills, Other.
           
-          Return the data as a JSON array with objects containing:
+          Format your response as a JSON string with an 'expenses' array containing objects with:
           - amount (number)
           - description (string)
           - category (string, must be one of the above categories)
           
           If multiple expenses are mentioned, return multiple objects.
-          If no valid expense is found, return an empty array.`
+          If no valid expense is found, return an empty array.
+          
+          Example response:
+          {"expenses": [{"amount": 25.50, "description": "lunch at cafe", "category": "Food"}]}`
         },
         {
           role: "user",
           content: text
         }
       ],
-      temperature: 0,
-      response_format: { type: "json_object" }
+      temperature: 0
     });
 
     const response = completion.choices[0]?.message?.content;
@@ -72,28 +74,33 @@ export async function extractExpenseDetails(text: string) {
 
     console.log('OpenAI response:', response);
     
-    const parsed = JSON.parse(response);
-    if (!Array.isArray(parsed.expenses)) {
-      console.error('Invalid response format:', parsed);
+    try {
+      const parsed = JSON.parse(response);
+      if (!Array.isArray(parsed.expenses)) {
+        console.error('Invalid response format:', parsed);
+        return [];
+      }
+
+      // Validate each expense
+      const validExpenses = parsed.expenses.filter(expense => {
+        const isValid = 
+          typeof expense.amount === 'number' && 
+          typeof expense.description === 'string' && 
+          typeof expense.category === 'string' &&
+          ['Food', 'Transportation', 'Entertainment', 'Shopping', 'Bills', 'Other'].includes(expense.category);
+        
+        if (!isValid) {
+          console.error('Invalid expense format:', expense);
+        }
+        return isValid;
+      });
+
+      console.log('Valid expenses:', validExpenses);
+      return validExpenses;
+    } catch (parseError) {
+      console.error('Error parsing OpenAI response:', parseError);
       return [];
     }
-
-    // Validate each expense
-    const validExpenses = parsed.expenses.filter(expense => {
-      const isValid = 
-        typeof expense.amount === 'number' && 
-        typeof expense.description === 'string' && 
-        typeof expense.category === 'string' &&
-        ['Food', 'Transportation', 'Entertainment', 'Shopping', 'Bills', 'Other'].includes(expense.category);
-      
-      if (!isValid) {
-        console.error('Invalid expense format:', expense);
-      }
-      return isValid;
-    });
-
-    console.log('Valid expenses:', validExpenses);
-    return validExpenses;
   } catch (error) {
     console.error('Error in extractExpenseDetails:', error);
     return [];
