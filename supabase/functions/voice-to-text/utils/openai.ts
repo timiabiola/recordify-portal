@@ -21,6 +21,14 @@ function checkRateLimit() {
   lastRequestTimes.push(now);
 }
 
+// New helper function to sanitize OpenAI responses
+function sanitizeJsonResponse(response: string): string {
+  return response
+    .replace(/```json/g, '')  // Remove ```json
+    .replace(/```/g, '')      // Remove remaining backticks
+    .trim();                  // Remove extra whitespace
+}
+
 export async function transcribeAudio(audioBlob: Blob) {
   console.log('Starting audio transcription...');
   console.log('Audio blob size:', audioBlob.size);
@@ -123,13 +131,18 @@ export async function extractExpenseDetails(text: string) {
     console.log("OpenAI extracted content:", response);
     
     try {
-      const parsedResponse = JSON.parse(response);
+      // Sanitize the response before parsing
+      const sanitizedResponse = sanitizeJsonResponse(response);
+      console.log("Sanitized response:", sanitizedResponse);
+      
+      const parsedResponse = JSON.parse(sanitizedResponse);
       console.log("Successfully parsed response:", parsedResponse);
       return parsedResponse;
     } catch (parseError) {
       console.error("Error parsing OpenAI response:", {
         error: parseError,
-        response: response
+        originalResponse: response,
+        sanitizedResponse: sanitizeJsonResponse(response)
       });
       throw new Error("Failed to parse expense details from OpenAI response");
     }
