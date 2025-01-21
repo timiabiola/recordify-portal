@@ -27,22 +27,20 @@ export const transcribeAudio = async (openai: OpenAIApi, audioBuffer: Uint8Array
       throw new Error('Invalid response from Whisper API');
     }
 
-    console.log('Transcription successful:', JSON.stringify({
-      text: transcriptionResponse.data.text
-    }));
+    console.log('Transcription successful:', transcriptionResponse.data.text);
 
     return transcriptionResponse.data.text;
   } catch (error) {
-    console.error('Transcription error:', JSON.stringify({
+    console.error('Transcription error:', {
       message: error?.message,
       response: error?.response?.data
-    }));
+    });
     throw new Error('Failed to transcribe audio: ' + error.message);
   }
 };
 
 export const parseExpenseWithGPT = async (openai: OpenAIApi, transcription: string) => {
-  console.log('Sending transcription to GPT API:', JSON.stringify({ transcription }));
+  console.log('Sending transcription to GPT API:', transcription);
   
   try {
     const parseResponse = await openai.createChatCompletion({
@@ -67,7 +65,7 @@ export const parseExpenseWithGPT = async (openai: OpenAIApi, transcription: stri
       throw new Error('Invalid response from GPT API');
     }
 
-    console.log('GPT response received:', JSON.stringify({ parsedText }));
+    console.log('GPT response received:', parsedText);
 
     try {
       const expenseData = JSON.parse(parsedText);
@@ -76,17 +74,17 @@ export const parseExpenseWithGPT = async (openai: OpenAIApi, transcription: stri
       }
       return expenseData;
     } catch (e) {
-      console.error('JSON parsing error:', JSON.stringify({
+      console.error('JSON parsing error:', {
         message: e?.message,
         parsedText
-      }));
+      });
       throw new Error('Failed to parse expense data');
     }
   } catch (error) {
-    console.error('GPT API error:', JSON.stringify({
+    console.error('GPT API error:', {
       message: error?.message,
       response: error?.response?.data
-    }));
+    });
     throw new Error('Failed to parse expense with GPT: ' + error.message);
   }
 };

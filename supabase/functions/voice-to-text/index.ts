@@ -28,7 +28,7 @@ serve(async (req) => {
     console.log('Audio processing completed, buffer size:', audioBuffer.length);
 
     const transcription = await transcribeAudio(openai, audioBuffer);
-    console.log('Transcription received:', JSON.stringify({ text: transcription }));
+    console.log('Transcription received:', transcription);
 
     const expenseData = await parseExpenseWithGPT(openai, transcription);
     console.log('Parsed expense data:', JSON.stringify(expenseData));
@@ -54,11 +54,11 @@ serve(async (req) => {
       },
     );
   } catch (err) {
-    console.error('Edge function error:', JSON.stringify({
+    console.error('Edge function error:', {
       message: err?.message,
       stack: err?.stack,
       name: err?.name
-    }));
+    });
     
     return createErrorResponse(
       err?.message || 'Internal server error',

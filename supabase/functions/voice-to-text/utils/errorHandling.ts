@@ -6,7 +6,7 @@ export const createErrorResponse = (message: string, status = 500) => {
     error: message
   };
   
-  console.error('Creating error response:', JSON.stringify(errorResponse));
+  console.error('Creating error response:', errorResponse);
   
   return new Response(
     JSON.stringify(errorResponse),
@@ -21,10 +21,10 @@ export const validateRequestData = async (req: Request) => {
   let requestData;
   try {
     requestData = await req.json();
-    console.log('Received request data:', JSON.stringify({
+    console.log('Received request data:', {
       hasAudio: !!requestData?.audio,
       hasUserId: !!requestData?.userId
-    }));
+    });
   } catch (e) {
     console.error('JSON parsing error:', e);
     throw new Error('Invalid JSON in request body');
@@ -63,10 +63,10 @@ export const processBase64Audio = async (audioData: string) => {
     console.log('Audio buffer created successfully, size:', audioBuffer.length);
     return audioBuffer;
   } catch (e) {
-    console.error('Base64 processing error:', JSON.stringify({
+    console.error('Base64 processing error:', {
       message: e?.message,
       name: e?.name
-    }));
+    });
     throw new Error('Failed to process audio data: ' + e.message);
   }
 };
