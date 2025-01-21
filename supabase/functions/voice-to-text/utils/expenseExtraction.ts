@@ -7,18 +7,29 @@ export async function extractExpenseDetails(text: string) {
   try {
     checkRateLimit();
 
-    const systemPrompt = `You are a helpful assistant that extracts expense information from text and returns it in pure JSON format. 
-Never include markdown formatting, code blocks, or backticks in your response. 
-Return only valid JSON that can be directly parsed.`;
+    const systemPrompt = `You are a helpful assistant that extracts expense information from transcribed speech. Your task is to:
+1. Extract the exact numerical amount mentioned
+2. Identify the category of expense
+3. Create a clear description based on the mentioned item or category
+4. Return the data in pure JSON format
 
-    const userPrompt = `Extract expense information from this text and return a JSON object with:
-- amount (number)
-- description (string)
+Important rules:
+- Never modify the amount - use exactly what was spoken
+- Keep descriptions simple and literal
+- Never include markdown or code blocks in response
+- Return only valid JSON`;
+
+    const userPrompt = `Extract expense information from this transcribed speech and return a JSON object with:
+- amount (number, exactly as spoken)
+- description (string, simple and literal)
 - category (string, one of: food, entertainment, transport, shopping, utilities, other)
 
 Text: "${text}"
 
-Remember to return ONLY the JSON object, no markdown or code blocks.`;
+Remember:
+1. Use the exact amount mentioned
+2. Keep descriptions literal and simple
+3. Return ONLY the JSON object, no markdown or code blocks`;
 
     console.log('Sending request to OpenAI with model: gpt-4o-mini');
     
