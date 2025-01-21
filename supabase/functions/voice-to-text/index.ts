@@ -23,14 +23,27 @@ serve(async (req) => {
     const openai = new OpenAIApi(configuration)
 
     // Get request body and validate
-    const requestData = await req.json()
+    let requestData
+    try {
+      requestData = await req.json()
+    } catch (e) {
+      console.error('JSON parsing error:', e)
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON in request body' }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+
     console.log('Processing request:', {
-      hasAudio: !!requestData.audio,
-      userId: requestData.userId,
-      audioLength: requestData.audio?.length
+      hasAudio: !!requestData?.audio,
+      userId: requestData?.userId,
+      audioLength: requestData?.audio?.length
     })
 
-    if (!requestData.audio || !requestData.userId) {
+    if (!requestData?.audio || !requestData?.userId) {
       return new Response(
         JSON.stringify({ error: 'Audio data and userId are required' }),
         { 
@@ -55,21 +68,11 @@ serve(async (req) => {
     // Create binary data from base64
     let audioBuffer: Uint8Array
     try {
-      // Process base64 in chunks to prevent memory issues
-      const chunkSize = 1024
-      const chunks: number[] = []
-      let offset = 0
-      
-      while (offset < base64Data.length) {
-        const chunk = base64Data.slice(offset, offset + chunkSize)
-        const binaryChunk = atob(chunk)
-        for (let i = 0; i < binaryChunk.length; i++) {
-          chunks.push(binaryChunk.charCodeAt(i))
-        }
-        offset += chunkSize
+      const binaryString = atob(base64Data)
+      audioBuffer = new Uint8Array(binaryString.length)
+      for (let i = 0; i < binaryString.length; i++) {
+        audioBuffer[i] = binaryString.charCodeAt(i)
       }
-      
-      audioBuffer = new Uint8Array(chunks)
       console.log('Audio buffer created successfully, size:', audioBuffer.length)
     } catch (e) {
       console.error('Base64 decoding error:', e)
@@ -91,13 +94,25 @@ serve(async (req) => {
     console.log('Sending to Whisper API...')
 
     // Get transcription from Whisper API
-    const transcriptionResponse = await openai.createTranscription(
-      // @ts-ignore: FormData is not properly typed in OpenAI's types
-      formData,
-      'whisper-1'
-    )
+    let transcriptionResponse
+    try {
+      transcriptionResponse = await openai.createTranscription(
+        // @ts-ignore: FormData is not properly typed in OpenAI's types
+        formData,
+        'whisper-1'
+      )
+    } catch (e) {
+      console.error('Whisper API error:', e)
+      return new Response(
+        JSON.stringify({ error: 'Failed to transcribe audio' }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
 
-    if (!transcriptionResponse.data?.text) {
+    if (!transcriptionResponse?.data?.text) {
       console.error('Invalid Whisper API response:', transcriptionResponse)
       return new Response(
         JSON.stringify({ error: 'Invalid response from Whisper API' }),
@@ -113,24 +128,36 @@ serve(async (req) => {
 
     // Use GPT to parse the transcription
     console.log('Sending to GPT API...')
-    const parseResponse = await openai.createChatCompletion({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "system",
-          content: `You are a helpful assistant that extracts expense information from text. 
-          Extract the amount (as a number), description (as text), and category (must be one of: food, transport, entertainment, shopping, utilities, other).
-          If a category isn't explicitly mentioned, infer it from the description.
-          Return only a JSON object with these three fields.`
-        },
-        {
-          role: "user",
-          content: transcription
+    let parseResponse
+    try {
+      parseResponse = await openai.createChatCompletion({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: `You are a helpful assistant that extracts expense information from text. 
+            Extract the amount (as a number), description (as text), and category (must be one of: food, transport, entertainment, shopping, utilities, other).
+            If a category isn't explicitly mentioned, infer it from the description.
+            Return only a JSON object with these three fields.`
+          },
+          {
+            role: "user",
+            content: transcription
+          }
+        ]
+      })
+    } catch (e) {
+      console.error('GPT API error:', e)
+      return new Response(
+        JSON.stringify({ error: 'Failed to parse expense data' }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
-      ]
-    })
+      )
+    }
 
-    const parsedText = parseResponse.data?.choices?.[0]?.message?.content
+    const parsedText = parseResponse?.data?.choices?.[0]?.message?.content
     if (!parsedText) {
       console.error('Invalid GPT API response:', parseResponse)
       return new Response(
@@ -147,7 +174,7 @@ serve(async (req) => {
     let expenseData
     try {
       expenseData = JSON.parse(parsedText)
-      if (!expenseData.amount || !expenseData.description || !expenseData.category) {
+      if (!expenseData?.amount || !expenseData?.description || !expenseData?.category) {
         throw new Error('Missing required fields in parsed expense data')
       }
       console.log('Parsed expense data:', expenseData)
@@ -237,7 +264,7 @@ serve(async (req) => {
   } catch (err) {
     console.error('Edge function error:', err)
     return new Response(
-      JSON.stringify({ error: err.message || 'Internal server error' }),
+      JSON.stringify({ error: err?.message || 'Internal server error' }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
