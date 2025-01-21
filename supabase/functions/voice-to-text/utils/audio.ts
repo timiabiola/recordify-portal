@@ -1,9 +1,9 @@
 const SUPPORTED_FORMATS = ['flac', 'm4a', 'mp3', 'mp4', 'mpeg', 'mpga', 'oga', 'ogg', 'wav', 'webm'];
 
-export function validateAudioFormat(mimeType: string): boolean {
-  const format = mimeType.split('/')[1];
-  console.log('Validating audio format:', format);
-  return SUPPORTED_FORMATS.includes(format);
+export function validateAudioFormat(fileName: string): boolean {
+  const fileExtension = fileName.split('.').pop()?.toLowerCase();
+  console.log('Validating audio format:', fileExtension);
+  return fileExtension ? SUPPORTED_FORMATS.includes(fileExtension) : false;
 }
 
 export function processBase64Chunks(base64String: string, chunkSize = 32768) {
@@ -17,9 +17,11 @@ export function processBase64Chunks(base64String: string, chunkSize = 32768) {
     if (matches) {
       const mimeType = matches[1];
       cleanBase64 = matches[2];
-      console.log('Extracted MIME type:', mimeType);
+      console.log('Processing file with MIME type:', mimeType);
       
-      if (!validateAudioFormat(mimeType)) {
+      // Extract extension from mime type (e.g., 'audio/webm' -> 'webm')
+      const format = mimeType.split('/')[1];
+      if (!validateAudioFormat(`file.${format}`)) {
         throw new Error(`Unsupported audio format. Supported formats are: ${SUPPORTED_FORMATS.join(', ')}`);
       }
     }

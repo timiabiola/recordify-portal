@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { processBase64Chunks } from './utils/audio.ts';
+import { processBase64Chunks, validateAudioFormat } from './utils/audio.ts';
 import { transcribeAudio, extractExpenseDetails } from './utils/openai.ts';
 import { saveExpense } from './utils/database.ts';
 
@@ -70,6 +70,19 @@ serve(async (req) => {
     try {
       const binaryAudio = processBase64Chunks(audio);
       const blob = new Blob([binaryAudio], { type: 'audio/webm' });
+      
+      // Validate audio format
+      if (!validateAudioFormat('audio.webm')) {
+        return new Response(
+          JSON.stringify({
+            error: `Invalid file format. Supported formats: ${SUPPORTED_FORMATS.join(', ')}`,
+          }), 
+          { 
+            status: 400,
+            headers: corsHeaders 
+          }
+        );
+      }
       
       // Transcribe audio using Whisper API
       const text = await transcribeAudio(blob);
