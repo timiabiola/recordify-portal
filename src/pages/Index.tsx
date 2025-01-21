@@ -93,9 +93,9 @@ const Index = () => {
           />
         </div>
 
-        <div className="mt-6">
-          <Link to="/dashboard">
-            <Button variant="outline" className="gap-2">
+        <div className="mt-6 sm:mt-8">
+          <Link to="/dashboard" className="inline-block w-full sm:w-auto">
+            <Button variant="outline" className="w-full sm:w-auto gap-2">
               <BarChart3 className="h-5 w-5" />
               View Dashboard
             </Button>
