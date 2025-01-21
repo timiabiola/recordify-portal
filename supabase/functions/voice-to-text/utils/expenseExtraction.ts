@@ -7,25 +7,18 @@ export async function extractExpenseDetails(text: string) {
   try {
     checkRateLimit();
 
-    const systemPrompt = `You are a literal expense parser that extracts EXACTLY what was spoken. Your only task is to:
-1. Extract the EXACT amount mentioned (e.g. if someone says $175, use 175, not a different number)
-2. Use the EXACT description of what was mentioned (e.g. if someone says "groceries", use "groceries", not "food shopping")
-3. Map to the closest category
+    const systemPrompt = `You are a helpful assistant that extracts expense information from text and returns it in pure JSON format. 
+Never include markdown formatting, code blocks, or backticks in your response. 
+Return only valid JSON that can be directly parsed.`;
 
-Rules:
-- NEVER modify the spoken amount
-- NEVER modify the spoken description
-- NEVER add extra words or context
-- Return pure JSON only`;
-
-    const userPrompt = `Parse this expense exactly as spoken and return a JSON object with:
-- amount: the EXACT number mentioned (e.g. if they say $175, use 175)
-- description: the EXACT item mentioned (e.g. if they say "groceries", use "groceries")
-- category: map to: food, entertainment, transport, shopping, utilities, other
+    const userPrompt = `Extract expense information from this text and return a JSON object with:
+- amount (number)
+- description (string)
+- category (string, one of: food, entertainment, transport, shopping, utilities, other)
 
 Text: "${text}"
 
-Return ONLY the JSON object. No explanation, no markdown.`;
+Remember to return ONLY the JSON object, no markdown or code blocks.`;
 
     console.log('Sending request to OpenAI with model: gpt-4o-mini');
     
@@ -36,18 +29,18 @@ Return ONLY the JSON object. No explanation, no markdown.`;
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: "gpt-4o-mini",
         messages: [
           {
-            role: 'system',
+            role: "system",
             content: systemPrompt
           },
           {
-            role: 'user',
+            role: "user",
             content: userPrompt
           }
         ],
-        temperature: 0, // Set to 0 for most deterministic, literal response
+        temperature: 0.1,
       }),
     });
 
@@ -83,7 +76,7 @@ Return ONLY the JSON object. No explanation, no markdown.`;
     }
 
     const response = data.choices[0].message.content;
-    console.log('OpenAI extracted content:', response);
+    console.log("OpenAI extracted content:", response);
     
     try {
       return parseOpenAIResponse(response);
