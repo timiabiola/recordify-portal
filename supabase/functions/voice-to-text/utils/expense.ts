@@ -13,45 +13,33 @@ export async function saveExpense(
   transcription: string
 ) {
   try {
-    console.log('Saving expense:', { userId, expenseDetails, transcription });
+    console.log('Starting saveExpense with:', { userId, expenseDetails, transcription });
     
-    // Get category id or create new category
+    // Get category id
     const { data: categoryData, error: categoryError } = await supabaseAdmin
       .from('categories')
       .select('id')
-      .ilike('name', expenseDetails.category)
+      .eq('name', expenseDetails.category)
       .single();
 
-    if (categoryError && categoryError.code !== 'PGRST116') {
+    if (categoryError) {
       console.error('Error fetching category:', categoryError);
-      throw new Error(`Error fetching category: ${categoryError.message}`);
+      throw new Error(`Category not found: ${expenseDetails.category}`);
     }
 
-    let categoryId = categoryData?.id;
-
-    if (!categoryId) {
-      console.log('Category not found, creating new category:', expenseDetails.category);
-      const { data: newCategory, error: createError } = await supabaseAdmin
-        .from('categories')
-        .insert({ name: expenseDetails.category })
-        .select('id')
-        .single();
-
-      if (createError) {
-        console.error('Error creating category:', createError);
-        throw new Error(`Error creating category: ${createError.message}`);
-      }
-      categoryId = newCategory.id;
+    if (!categoryData?.id) {
+      console.error('No category found for:', expenseDetails.category);
+      throw new Error(`Invalid category: ${expenseDetails.category}`);
     }
 
-    console.log('Using category ID:', categoryId);
+    console.log('Found category ID:', categoryData.id);
 
     // Save expense
     const { data: expense, error: expenseError } = await supabaseAdmin
       .from('expenses')
       .insert({
         user_id: userId,
-        category_id: categoryId,
+        category_id: categoryData.id,
         amount: expenseDetails.amount,
         description: expenseDetails.description,
         transcription: transcription
@@ -62,6 +50,10 @@ export async function saveExpense(
     if (expenseError) {
       console.error('Error saving expense:', expenseError);
       throw new Error(`Error saving expense: ${expenseError.message}`);
+    }
+
+    if (!expense) {
+      throw new Error('No expense returned after saving');
     }
 
     console.log('Expense saved successfully:', expense);
