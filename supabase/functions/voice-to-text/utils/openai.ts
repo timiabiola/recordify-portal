@@ -1,9 +1,5 @@
 import OpenAI from 'https://esm.sh/openai@4.20.1'
 
-const openai = new OpenAI({
-  apiKey: Deno.env.get('OPENAI_API_KEY')
-});
-
 export async function transcribeAudio(audioBlob: Blob): Promise<string> {
   try {
     console.log('Starting audio transcription...');
@@ -38,25 +34,26 @@ export async function extractExpenseDetails(text: string) {
   try {
     console.log('Extracting expense details from:', text);
     
+    const openai = new OpenAI({
+      apiKey: Deno.env.get('OPENAI_API_KEY')
+    });
+
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
           content: `You are a helpful assistant that extracts expense information from text.
-          Extract the amount and description, and categorize the expense into one of these categories: 
-          Food, Transportation, Entertainment, Shopping, Bills, Other.
-          
-          Format your response as a JSON string with an 'expenses' array containing objects with:
-          - amount (number)
-          - description (string)
-          - category (string, must be one of the above categories)
-          
-          If multiple expenses are mentioned, return multiple objects.
-          If no valid expense is found, return an empty array.
-          
-          Example response:
-          {"expenses": [{"amount": 25.50, "description": "lunch at cafe", "category": "Food"}]}`
+Extract the amount and description, and categorize the expense into one of these categories: 
+Food, Transportation, Entertainment, Shopping, Bills, Other.
+
+Format your response as a JSON array of expense objects with:
+- amount (number)
+- description (string)
+- category (string, must be one of the above categories)
+
+Example response:
+[{"amount": 25.50, "description": "lunch at cafe", "category": "Food"}]`
         },
         {
           role: "user",
@@ -72,17 +69,17 @@ export async function extractExpenseDetails(text: string) {
       return [];
     }
 
-    console.log('OpenAI response:', response);
+    console.log('OpenAI raw response:', response);
     
     try {
       const parsed = JSON.parse(response);
-      if (!Array.isArray(parsed.expenses)) {
-        console.error('Invalid response format:', parsed);
+      if (!Array.isArray(parsed)) {
+        console.error('Invalid response format - not an array:', parsed);
         return [];
       }
 
       // Validate each expense
-      const validExpenses = parsed.expenses.filter(expense => {
+      const validExpenses = parsed.filter(expense => {
         const isValid = 
           typeof expense.amount === 'number' && 
           typeof expense.description === 'string' && 
@@ -103,6 +100,6 @@ export async function extractExpenseDetails(text: string) {
     }
   } catch (error) {
     console.error('Error in extractExpenseDetails:', error);
-    return [];
+    throw error;
   }
 }

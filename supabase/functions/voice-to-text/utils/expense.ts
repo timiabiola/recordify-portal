@@ -1,9 +1,15 @@
 import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+interface ExpenseDetails {
+  amount: number;
+  category: string;
+  description: string;
+}
+
 export async function saveExpense(
   supabaseAdmin: SupabaseClient,
   userId: string,
-  expenseDetails: { amount: number; category: string; description: string },
+  expenseDetails: ExpenseDetails,
   transcription: string
 ) {
   try {
@@ -13,7 +19,7 @@ export async function saveExpense(
     const { data: categoryData, error: categoryError } = await supabaseAdmin
       .from('categories')
       .select('id')
-      .eq('name', expenseDetails.category)
+      .ilike('name', expenseDetails.category)
       .single();
 
     if (categoryError && categoryError.code !== 'PGRST116') {
