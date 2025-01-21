@@ -24,6 +24,7 @@ const Index = () => {
         return;
       }
 
+      console.log('Starting recording process...');
       const recorder = await startRecording(setIsRecording);
       mediaRecorder.current = recorder;
       
@@ -32,17 +33,13 @@ const Index = () => {
         description: "Speak your expense details clearly...",
       });
     } catch (error) {
-      console.error('Error starting recording:', error);
-      toast({
-        variant: "destructive",
-        title: "Could not start recording",
-        description: "Please make sure you have granted microphone permissions.",
-      });
+      console.error('Error in handleStartRecording:', error);
       setIsRecording(false);
     }
   };
 
   const handleStopRecording = () => {
+    console.log('Stopping recording...');
     if (mediaRecorder.current && mediaRecorder.current.state !== 'inactive') {
       mediaRecorder.current.stop();
       setIsRecording(false);
