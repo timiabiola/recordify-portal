@@ -25,22 +25,30 @@ export const signOut = async () => {
   try {
     console.log('Starting sign out process...');
     
-    // Clear local storage and cookies related to auth
-    localStorage.removeItem('supabase.auth.token');
-    document.cookie = 'supabase-auth-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    // Clear local storage
+    localStorage.clear();
+    
+    // Clear all auth-related cookies
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i];
+      const eqPos = cookie.indexOf('=');
+      const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
+      document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
+    }
     
     try {
       // Attempt to sign out from Supabase
-      await supabase.auth.signOut();
-      console.log('Supabase sign out completed');
-    } catch (error: any) {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.log('Sign out error (expected if session expired):', error);
+      } else {
+        console.log('Supabase sign out completed');
+      }
+    } catch (error) {
       // If we get here with a session_not_found, that's actually okay
-      // It means we're already signed out
-      console.log('Sign out error (expected if session expired):', error);
+      console.log('Sign out error caught (expected if session expired):', error);
     }
-
-    // Clear any remaining session state
-    await supabase.auth.clearSession();
     
     console.log('Sign out process completed');
     toast.success('Signed out successfully');
