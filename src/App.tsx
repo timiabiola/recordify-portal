@@ -14,82 +14,38 @@ const queryClient = new QueryClient();
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   useEffect(() => {
-    let mounted = true;
-
     const checkSession = async () => {
       try {
-        console.log('ProtectedRoute: Checking session');
-        
-        if (!mounted) {
-          console.log('ProtectedRoute: Component unmounted, aborting check');
-          return;
-        }
-
-        // Handle preview mode
         if (isPreviewMode()) {
-          console.log('Preview mode detected in ProtectedRoute');
-          await supabase.auth.signOut();
-          localStorage.clear();
-          if (!mounted) return;
+          console.log('Preview mode detected, clearing auth state');
           setIsAuthenticated(false);
-          setIsCheckingAuth(false);
           return;
         }
 
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('Session check error:', error);
-          if (!mounted) return;
-          setIsAuthenticated(false);
-          setIsCheckingAuth(false);
-          return;
-        }
-
-        console.log('Session check result:', session ? 'authenticated' : 'not authenticated');
-        if (!mounted) return;
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log('Session check:', session ? 'authenticated' : 'not authenticated');
         setIsAuthenticated(!!session);
-        setIsCheckingAuth(false);
       } catch (error) {
-        console.error('Unexpected error during session check:', error);
-        if (!mounted) return;
+        console.error('Session check error:', error);
         setIsAuthenticated(false);
-        setIsCheckingAuth(false);
       }
     };
 
-    // Initial session check
     checkSession();
 
-    // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('Auth state changed:', event, 'Session:', session ? 'exists' : 'null');
-      
-      if (!mounted) {
-        console.log('ProtectedRoute: Component unmounted, ignoring auth state change');
-        return;
-      }
-      
-      if (event === 'SIGNED_OUT') {
-        console.log('User signed out');
-        setIsAuthenticated(false);
-      } else if (session) {
-        console.log('User authenticated');
-        setIsAuthenticated(true);
-      }
+      setIsAuthenticated(!!session);
     });
 
     return () => {
-      console.log('ProtectedRoute: Cleaning up');
-      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
 
-  if (isCheckingAuth) {
+  if (isAuthenticated === null) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>

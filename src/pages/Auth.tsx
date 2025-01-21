@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 import LoadingSpinner from '@/components/auth/LoadingSpinner';
 import ErrorAlert from '@/components/auth/ErrorAlert';
 import AuthForm from '@/components/auth/AuthForm';
@@ -9,91 +8,51 @@ import { isPreviewMode } from '@/lib/auth';
 
 const Auth = () => {
   const navigate = useNavigate();
-  const [errorMessage, setErrorMessage] = useState("");
+  const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    let mounted = true;
-
-    const checkSession = async () => {
+    const checkAuth = async () => {
       try {
-        console.log('Auth page: Starting session check');
-        
-        if (!mounted) {
-          console.log('Auth: Component unmounted, aborting session check');
-          return;
-        }
-
-        // Handle preview mode
         if (isPreviewMode()) {
-          console.log('Preview mode detected on Auth page');
+          console.log('Preview mode detected, clearing session');
           await supabase.auth.signOut();
-          localStorage.clear();
-          if (!mounted) return;
           setIsLoading(false);
           return;
         }
 
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (!mounted) {
-          console.log('Auth: Component unmounted after session check');
-          return;
-        }
-
-        if (error) {
-          console.error('Session check error:', error);
-          setErrorMessage(error.message);
-          setIsLoading(false);
-          return;
-        }
-
+        const { data: { session } } = await supabase.auth.getSession();
         if (session) {
           console.log('Active session found, redirecting to home');
           navigate('/', { replace: true });
-        } else {
-          console.log('No active session found, showing auth form');
-          setIsLoading(false);
         }
-      } catch (error) {
-        console.error('Unexpected error during session check:', error);
-        if (!mounted) return;
-        setErrorMessage('An unexpected error occurred');
+      } catch (err) {
+        console.error('Auth check error:', err);
+        setError('Failed to check authentication status');
+      } finally {
         setIsLoading(false);
       }
     };
 
-    // Initial session check
-    checkSession();
+    checkAuth();
 
-    // Set up auth state change listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event, 'Session:', session ? 'exists' : 'null');
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state changed:', event, session);
       
-      if (!mounted) {
-        console.log('Auth: Component unmounted, ignoring auth state change');
-        return;
-      }
-
       if (event === 'SIGNED_IN' && session) {
-        console.log('Sign in successful, redirecting to home');
-        setErrorMessage('');
+        console.log('User signed in, redirecting to home');
         navigate('/', { replace: true });
-      }
-
-      if (event === 'SIGNED_OUT') {
-        console.log('Sign out detected on Auth page');
-        setErrorMessage('');
-        setIsLoading(false);
       }
     });
 
     return () => {
-      console.log('Auth page: Cleaning up');
-      mounted = false;
       subscription.unsubscribe();
     };
   }, [navigate]);
+
+  if (isLoading) {
+    return <LoadingSpinner />;
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -103,15 +62,11 @@ const Auth = () => {
           <p className="text-muted-foreground">Sign in to record your expenses</p>
         </div>
 
-        <ErrorAlert message={errorMessage} />
+        {error && <ErrorAlert message={error} />}
 
-        {isLoading ? (
-          <LoadingSpinner />
-        ) : (
-          <div className="bg-card p-6 rounded-lg shadow-sm">
-            <AuthForm />
-          </div>
-        )}
+        <div className="bg-card p-6 rounded-lg shadow-sm">
+          <AuthForm />
+        </div>
       </div>
     </div>
   );

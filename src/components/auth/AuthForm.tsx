@@ -1,10 +1,10 @@
-import { Auth as SupabaseAuth } from '@supabase/auth-ui-react';
+import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '@/integrations/supabase/client';
 
 const AuthForm = () => {
   return (
-    <SupabaseAuth 
+    <Auth 
       supabaseClient={supabase}
       appearance={{ 
         theme: ThemeSupa,
@@ -18,6 +18,7 @@ const AuthForm = () => {
         },
       }}
       providers={[]}
+      redirectTo={window.location.origin}
     />
   );
 };
