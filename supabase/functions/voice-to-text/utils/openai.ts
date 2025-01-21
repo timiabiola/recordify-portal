@@ -43,7 +43,6 @@ export async function extractExpenseDetails(text: string) {
       apiKey: Deno.env.get('OPENAI_API_KEY')
     });
 
-    // First, validate the input text
     if (!text || typeof text !== 'string' || text.trim() === '') {
       throw new Error('Invalid input text for expense extraction');
     }
@@ -54,20 +53,28 @@ export async function extractExpenseDetails(text: string) {
         {
           role: "system",
           content: `You are a helpful assistant that extracts expense information from text.
-Extract ONLY these fields and return them in a JSON object:
+You MUST extract these fields and return them in a JSON object:
 {
-  "amount": number (required, must be positive),
-  "description": string (required, must be descriptive),
-  "category": string (required, must be exactly one of: essentials, monthly_recurring, leisure)
+  "amount": number (REQUIRED: must be a positive number, remove any currency symbols),
+  "description": string (REQUIRED: must be a clear description of the expense),
+  "category": string (REQUIRED: must be exactly one of: essentials, monthly_recurring, leisure)
 }
 
-Categorization rules:
-- essentials: Bills, mortgage, rent, groceries, essential daily items, car payments, insurance, clothing, personal grooming, healthcare
-- monthly_recurring: Subscription services (Netflix, etc), monthly memberships, regular recurring payments
-- leisure: Entertainment, dining out, hobbies, non-essential shopping
+Example valid responses:
+For "I spent $50 on groceries":
+{"amount": 50, "description": "groceries", "category": "essentials"}
 
-If you cannot extract all required fields, return an error message instead.
-DO NOT include any markdown formatting or explanation text.`
+For "Netflix subscription for $15.99":
+{"amount": 15.99, "description": "Netflix subscription", "category": "monthly_recurring"}
+
+For "Went to the movies for 20 dollars":
+{"amount": 20, "description": "movie tickets", "category": "leisure"}
+
+Rules:
+1. Amount must be a number without currency symbols
+2. Description must be clear and specific
+3. Category must be exactly one of the three options
+4. Return ONLY the JSON object, no other text`
         },
         {
           role: "user",
@@ -94,25 +101,29 @@ DO NOT include any markdown formatting or explanation text.`
         throw new Error('Invalid response format: not an object');
       }
 
-      // Validate amount
-      if (typeof parsed.amount !== 'number' || parsed.amount <= 0) {
+      // Validate amount - ensure it's a positive number
+      const amount = Number(parsed.amount);
+      if (isNaN(amount) || amount <= 0) {
+        console.error('Invalid amount:', parsed.amount);
         throw new Error('Invalid amount: must be a positive number');
       }
 
       // Validate description
       if (!parsed.description || typeof parsed.description !== 'string' || parsed.description.trim() === '') {
+        console.error('Invalid description:', parsed.description);
         throw new Error('Invalid description: must be a non-empty string');
       }
 
       // Validate category
       const validCategories = ['essentials', 'monthly_recurring', 'leisure'];
       if (!validCategories.includes(parsed.category)) {
+        console.error('Invalid category:', parsed.category);
         throw new Error(`Invalid category: must be one of ${validCategories.join(', ')}`);
       }
 
       // Clean and normalize the data
       const normalizedExpense = {
-        amount: Number(parsed.amount),
+        amount: amount,
         description: parsed.description.trim(),
         category: parsed.category
       };
