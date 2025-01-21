@@ -9,17 +9,35 @@ import { toast } from 'sonner';
 const Auth = () => {
   const navigate = useNavigate();
   const [errorMessage, setErrorMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Check if user is already logged in
     const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        navigate('/');
+      try {
+        setIsLoading(true);
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Session check error:', error);
+          setErrorMessage(error.message);
+          return;
+        }
+
+        if (session) {
+          console.log('Valid session found, redirecting to home');
+          navigate('/');
+        }
+      } catch (error) {
+        console.error('Unexpected error during session check:', error);
+        setErrorMessage('An unexpected error occurred. Please try again.');
+      } finally {
+        setIsLoading(false);
       }
     };
     checkUser();
 
+    // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, session ? 'session exists' : 'no session');
       
@@ -27,9 +45,13 @@ const Auth = () => {
         console.log('User signed in successfully');
         navigate('/');
       }
+      
       if (event === 'SIGNED_OUT') {
-        console.log('User signed out successfully');
+        console.log('User signed out');
         setErrorMessage("");
+        
+        // Clear any local session data
+        await supabase.auth.clearSession();
         
         // In preview mode, force a full page reload
         if (window.location.hostname.includes('preview')) {
@@ -48,6 +70,14 @@ const Auth = () => {
       subscription.unsubscribe();
     };
   }, [navigate]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
