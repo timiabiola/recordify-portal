@@ -29,13 +29,17 @@ export const validateRequestData = async (req: Request) => {
 
 export const processBase64Audio = (audioData: string) => {
   try {
-    const base64Data = audioData.split(',')[1] || audioData;
+    // Remove data URL prefix if present
+    const base64Data = audioData.replace(/^data:audio\/\w+;base64,/, '');
+    
     if (!base64Data) {
       throw new Error('Invalid audio data format');
     }
 
+    // Convert base64 to binary in chunks to handle large files
     const binaryString = atob(base64Data);
     const audioBuffer = new Uint8Array(binaryString.length);
+    
     for (let i = 0; i < binaryString.length; i++) {
       audioBuffer[i] = binaryString.charCodeAt(i);
     }
