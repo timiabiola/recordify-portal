@@ -75,6 +75,10 @@ const Auth = () => {
               },
             }}
             providers={[]}
+            onError={(error) => {
+              console.error('Auth error:', error);
+              setErrorMessage(getErrorMessage(error));
+            }}
           />
         </div>
       </div>
