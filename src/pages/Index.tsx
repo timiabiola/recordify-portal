@@ -66,12 +66,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4 sm:p-6">
-      <div className="fixed top-4 right-4 flex gap-2">
-        <Link to="/dashboard">
-          <Button variant="outline" size="icon" className="w-10 h-10">
-            <BarChart3 className="h-5 w-5" />
-          </Button>
-        </Link>
+      <div className="fixed top-4 right-4">
         <Button variant="outline" size="icon" onClick={handleSignOut} className="w-10 h-10">
           <LogOut className="h-5 w-5" />
         </Button>
@@ -96,6 +91,15 @@ const Index = () => {
               }
             }} 
           />
+        </div>
+
+        <div className="mt-6">
+          <Link to="/dashboard">
+            <Button variant="outline" className="gap-2">
+              <BarChart3 className="h-5 w-5" />
+              View Dashboard
+            </Button>
+          </Link>
         </div>
       </div>
     </div>
