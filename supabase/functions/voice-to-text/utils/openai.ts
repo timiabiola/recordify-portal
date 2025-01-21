@@ -44,16 +44,14 @@ export async function extractExpenseDetails(text: string) {
         {
           role: "system",
           content: `You are a helpful assistant that extracts expense information from text.
-Extract the amount and description, and categorize the expense into one of these categories: 
-Food, Transportation, Entertainment, Shopping, Bills, Other.
-
-Format your response as a JSON array of expense objects with:
+You must return ONLY valid JSON with no additional text or formatting.
+The response should be an array with a single object containing:
 - amount (number)
 - description (string)
-- category (string, must be one of the above categories)
+- category (string, one of: food, transportation, entertainment, shopping, bills, other)
 
-Example response:
-[{"amount": 25.50, "description": "lunch at cafe", "category": "Food"}]`
+Example valid response:
+[{"amount": 25.50, "description": "lunch at cafe", "category": "food"}]`
         },
         {
           role: "user",
@@ -72,7 +70,7 @@ Example response:
     console.log('OpenAI raw response:', response);
     
     try {
-      const parsed = JSON.parse(response);
+      const parsed = JSON.parse(response.trim());
       if (!Array.isArray(parsed)) {
         console.error('Invalid response format - not an array:', parsed);
         return [];
@@ -84,7 +82,7 @@ Example response:
           typeof expense.amount === 'number' && 
           typeof expense.description === 'string' && 
           typeof expense.category === 'string' &&
-          ['Food', 'Transportation', 'Entertainment', 'Shopping', 'Bills', 'Other'].includes(expense.category);
+          ['food', 'transportation', 'entertainment', 'shopping', 'bills', 'other'].includes(expense.category.toLowerCase());
         
         if (!isValid) {
           console.error('Invalid expense format:', expense);
