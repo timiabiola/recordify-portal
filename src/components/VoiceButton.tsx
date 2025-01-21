@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Mic } from 'lucide-react';
+import { startRecording } from '@/lib/audioRecording';
 
 interface VoiceButtonProps {
   isRecording: boolean;
@@ -7,6 +8,19 @@ interface VoiceButtonProps {
 }
 
 export const VoiceButton: React.FC<VoiceButtonProps> = ({ isRecording, setIsRecording }) => {
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+
+  const handleClick = async () => {
+    if (!isRecording) {
+      mediaRecorderRef.current = await startRecording(setIsRecording);
+    } else {
+      if (mediaRecorderRef.current) {
+        mediaRecorderRef.current.stop();
+        setIsRecording(false);
+      }
+    }
+  };
+
   return (
     <div className="relative flex flex-col items-center">
       {/* Floating helper text */}
@@ -25,7 +39,7 @@ export const VoiceButton: React.FC<VoiceButtonProps> = ({ isRecording, setIsReco
       
       {/* Main button */}
       <button
-        onClick={() => setIsRecording(!isRecording)}
+        onClick={handleClick}
         className={`relative z-10 rounded-full p-10 shadow-lg transition-all duration-300 ${
           isRecording 
             ? 'bg-destructive scale-105 hover:bg-destructive/90' 
