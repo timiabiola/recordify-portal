@@ -1,7 +1,6 @@
 import React, { useRef } from 'react';
 import { Mic } from 'lucide-react';
 import { startRecording } from '@/lib/audioRecording';
-import { toast } from 'sonner';
 
 interface VoiceButtonProps {
   isRecording: boolean;
@@ -14,8 +13,6 @@ export const VoiceButton: React.FC<VoiceButtonProps> = ({ isRecording, setIsReco
   const handleClick = async () => {
     try {
       if (!isRecording) {
-        console.log('Starting recording...');
-        // Stop any existing recording first
         if (mediaRecorderRef.current) {
           console.log('Cleaning up existing MediaRecorder...');
           mediaRecorderRef.current.stream.getTracks().forEach(track => {
@@ -24,9 +21,7 @@ export const VoiceButton: React.FC<VoiceButtonProps> = ({ isRecording, setIsReco
           });
         }
         
-        console.log('Initializing new MediaRecorder...');
-        mediaRecorderRef.current = await startRecording(setIsRecording);
-        console.log('MediaRecorder state after initialization:', mediaRecorderRef.current.state);
+        mediaRecorderRef.current = await startRecording({ isRecording, setIsRecording });
       } else {
         console.log('Stopping recording...');
         if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
@@ -39,27 +34,6 @@ export const VoiceButton: React.FC<VoiceButtonProps> = ({ isRecording, setIsReco
     } catch (error) {
       console.error('Recording error:', error);
       setIsRecording(false);
-      
-      if (error instanceof DOMException) {
-        switch (error.name) {
-          case 'NotAllowedError':
-            toast.error('Please allow microphone access to record expenses');
-            break;
-          case 'NotFoundError':
-            toast.error('No microphone found. Please check your device settings');
-            break;
-          case 'NotReadableError':
-            toast.error('Could not access your microphone. Please check if another app is using it');
-            break;
-          case 'SecurityError':
-            toast.error('Recording is only allowed on secure (HTTPS) connections');
-            break;
-          default:
-            toast.error(`Failed to start recording: ${error.message}`);
-        }
-      } else {
-        toast.error('Failed to start recording. Please try again');
-      }
     }
   };
 
