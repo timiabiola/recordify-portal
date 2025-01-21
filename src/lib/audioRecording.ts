@@ -11,22 +11,7 @@ export const startRecording = async (setIsRecording: (isRecording: boolean) => v
     }
     
     // Get supported MIME types
-    const supportedMimeTypes = [
-      'audio/webm',
-      'audio/webm;codecs=opus',
-      'audio/ogg;codecs=opus',
-      'audio/mp4',
-      'audio/aac',
-      'audio/wav'
-    ];
-
-    // Find the first supported MIME type
-    const mimeType = supportedMimeTypes.find(type => MediaRecorder.isTypeSupported(type));
-    
-    if (!mimeType) {
-      console.error('No supported MIME types found');
-      throw new Error('No supported audio format found in this browser');
-    }
+    const mimeType = 'audio/wav';
     
     console.log('Using MIME type:', mimeType);
     
@@ -89,7 +74,7 @@ export const startRecording = async (setIsRecording: (isRecording: boolean) => v
           throw new Error('No audio data recorded');
         }
         
-        const audioBlob = new Blob(audioChunks, { type: mimeType });
+        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
         console.log('Created audio blob:', {
           size: audioBlob.size,
           type: audioBlob.type
@@ -126,13 +111,10 @@ export const startRecording = async (setIsRecording: (isRecording: boolean) => v
           toast.error('No microphone found. Please ensure your device has a working microphone.');
           break;
         case 'NotReadableError':
-          toast.error('Could not start microphone. Please check if another app is using it.');
+          toast.error('Could not access microphone. Please check if another app is using it.');
           break;
         case 'SecurityError':
           toast.error('Recording requires a secure connection (HTTPS).');
-          break;
-        case 'AbortError':
-          toast.error('Recording was aborted. Please try again.');
           break;
         default:
           toast.error(`Failed to start recording: ${error.message}`);

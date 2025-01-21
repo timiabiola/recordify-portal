@@ -12,7 +12,7 @@ export async function transcribeAudio(audioBlob: Blob): Promise<string> {
     }
 
     const formData = new FormData();
-    formData.append('file', audioBlob, 'audio.webm');
+    formData.append('file', audioBlob, 'audio.wav');
     formData.append('model', 'whisper-1');
 
     console.log('Sending request to Whisper API...');
