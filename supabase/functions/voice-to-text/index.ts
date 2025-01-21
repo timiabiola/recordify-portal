@@ -1,7 +1,5 @@
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createOpenAIClient, transcribeAudio, parseExpenseWithGPT } from './utils/openai.ts';
-import { createErrorResponse, validateRequestData, processBase64Audio } from './utils/errorHandling.ts';
-import { saveExpenseToDatabase } from './utils/database.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,6 +10,7 @@ const corsHeaders = {
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('Handling CORS preflight request');
     return new Response('ok', { headers: corsHeaders });
   }
 
@@ -65,6 +64,9 @@ serve(async (req) => {
       );
     }
 
+    // Process the audio data
+    console.log('Processing audio data...');
+    
     // For now, return a test response
     console.log('Returning test response');
     return new Response(
