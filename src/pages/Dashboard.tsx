@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Receipt, ShoppingBag, CreditCard } from 'lucide-react';
 
 const Dashboard = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -34,7 +34,8 @@ const Dashboard = () => {
       console.log('Fetching categories...');
       const { data, error } = await supabase
         .from('categories')
-        .select('*');
+        .select('*')
+        .order('name');
       
       if (error) {
         console.error('Error fetching categories:', error);
@@ -56,7 +57,8 @@ const Dashboard = () => {
           categories (
             name
           )
-        `);
+        `)
+        .order('created_at', { ascending: false });
 
       if (selectedCategory !== 'all') {
         query = query.eq('category_id', selectedCategory);
@@ -71,6 +73,26 @@ const Dashboard = () => {
       return data;
     },
   });
+
+  const getCategoryIcon = (categoryName: string) => {
+    switch (categoryName) {
+      case 'essentials':
+        return <Receipt className="w-4 h-4" />;
+      case 'leisure':
+        return <ShoppingBag className="w-4 h-4" />;
+      case 'recurring_payments':
+        return <CreditCard className="w-4 h-4" />;
+      default:
+        return <Receipt className="w-4 h-4" />;
+    }
+  };
+
+  const formatCategoryName = (name: string) => {
+    return name
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
 
   const totalAmount = expenses?.reduce((sum, expense) => sum + Number(expense.amount), 0) || 0;
 
@@ -90,8 +112,11 @@ const Dashboard = () => {
             <SelectContent>
               <SelectItem value="all">All Categories</SelectItem>
               {categories?.map((category) => (
-                <SelectItem key={category.id} value={category.id}>
-                  {category.name}
+                <SelectItem key={category.id} value={category.id} className="flex items-center gap-2">
+                  <span className="flex items-center gap-2">
+                    {getCategoryIcon(category.name)}
+                    {formatCategoryName(category.name)}
+                  </span>
                 </SelectItem>
               ))}
             </SelectContent>
@@ -100,7 +125,15 @@ const Dashboard = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Total Expenses: ${totalAmount.toFixed(2)}</CardTitle>
+            <CardTitle className="flex items-center justify-between">
+              <span>Total Expenses: ${totalAmount.toFixed(2)}</span>
+              {selectedCategory !== 'all' && categories?.find(c => c.id === selectedCategory) && (
+                <span className="flex items-center gap-2 text-muted-foreground text-sm">
+                  {getCategoryIcon(categories.find(c => c.id === selectedCategory)?.name || '')}
+                  {formatCategoryName(categories.find(c => c.id === selectedCategory)?.name || '')}
+                </span>
+              )}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <Table>
@@ -115,12 +148,22 @@ const Dashboard = () => {
                 {expenses?.map((expense) => (
                   <TableRow key={expense.id}>
                     <TableCell>{expense.description}</TableCell>
-                    <TableCell>{expense.categories.name}</TableCell>
+                    <TableCell className="flex items-center gap-2">
+                      {getCategoryIcon(expense.categories.name)}
+                      {formatCategoryName(expense.categories.name)}
+                    </TableCell>
                     <TableCell className="text-right text-destructive font-medium">
                       ${Number(expense.amount).toFixed(2)}
                     </TableCell>
                   </TableRow>
                 ))}
+                {(!expenses || expenses.length === 0) && (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-center text-muted-foreground">
+                      No expenses found
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </CardContent>
