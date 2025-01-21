@@ -18,7 +18,10 @@ serve(async (req) => {
     
     if (!audio || !userId) {
       console.error('Missing required fields:', { hasAudio: !!audio, hasUserId: !!userId });
-      throw new Error('Missing required fields');
+      return new Response(
+        JSON.stringify({ success: false, error: 'Missing required fields' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
     }
 
     // Initialize OpenAI
@@ -45,12 +48,16 @@ serve(async (req) => {
     
     // Get transcription from OpenAI
     const transcriptionResponse = await openai.createTranscription(
+      // @ts-ignore: FormData typing issue with OpenAI
       formData,
       'whisper-1'
     );
 
     if (!transcriptionResponse.data?.text) {
-      throw new Error('No transcription received from OpenAI');
+      return new Response(
+        JSON.stringify({ success: false, error: 'No transcription received' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
     }
 
     const transcription = transcriptionResponse.data.text;
@@ -72,7 +79,10 @@ serve(async (req) => {
     });
 
     if (!gptResponse.data?.choices?.[0]?.message?.content) {
-      throw new Error('Invalid GPT response');
+      return new Response(
+        JSON.stringify({ success: false, error: 'Invalid GPT response' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
     }
 
     const parsedText = gptResponse.data.choices[0].message.content.trim();
@@ -86,7 +96,10 @@ serve(async (req) => {
       }
     } catch (e) {
       console.error('Failed to parse expense data:', e);
-      throw new Error('Invalid expense data format');
+      return new Response(
+        JSON.stringify({ success: false, error: 'Invalid expense data format' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
     }
 
     // Initialize Supabase client
@@ -102,7 +115,10 @@ serve(async (req) => {
       .limit(1);
 
     if (!categories?.length) {
-      throw new Error('No categories found');
+      return new Response(
+        JSON.stringify({ success: false, error: 'No categories found' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
     }
 
     // Save expense to database
@@ -120,7 +136,10 @@ serve(async (req) => {
 
     if (insertError) {
       console.error('Database insertion error:', insertError);
-      throw new Error('Failed to save expense');
+      return new Response(
+        JSON.stringify({ success: false, error: 'Failed to save expense' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
     }
 
     return new Response(
