@@ -1,262 +1,41 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { Configuration, OpenAIApi } from 'https://esm.sh/openai@3.3.0'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { corsHeaders } from './config.ts';
+import { createErrorResponse, validateRequestData, processBase64Audio } from './utils/errorHandling.ts';
+import { createOpenAIClient, transcribeAudio, parseExpenseWithGPT } from './utils/openai.ts';
+import { saveExpenseToDatabase } from './utils/database.ts';
 
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY')
-    if (!OPENAI_API_KEY) {
-      return new Response(
-        JSON.stringify({ error: 'Missing OpenAI API Key' }),
-        { 
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
-    }
-
-    const configuration = new Configuration({ apiKey: OPENAI_API_KEY })
-    const openai = new OpenAIApi(configuration)
-
-    // Get request body and validate
-    let requestData
-    try {
-      requestData = await req.json()
-    } catch (e) {
-      console.error('JSON parsing error:', e)
-      return new Response(
-        JSON.stringify({ error: 'Invalid JSON in request body' }),
-        { 
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
-    }
-
+    const openai = createOpenAIClient(Deno.env.get('OPENAI_API_KEY'));
+    const requestData = await validateRequestData(req);
+    
     console.log('Processing request:', {
       hasAudio: !!requestData?.audio,
       userId: requestData?.userId,
       audioLength: requestData?.audio?.length
-    })
+    });
 
-    if (!requestData?.audio || !requestData?.userId) {
-      return new Response(
-        JSON.stringify({ error: 'Audio data and userId are required' }),
-        { 
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
-    }
+    const audioBuffer = processBase64Audio(requestData.audio);
+    const transcription = await transcribeAudio(openai, audioBuffer);
+    console.log('Transcription received:', transcription);
 
-    // Clean the base64 string
-    const base64Data = requestData.audio.split(',')[1] || requestData.audio
-    if (!base64Data) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid audio data format' }),
-        { 
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
-    }
+    const expenseData = await parseExpenseWithGPT(openai, transcription);
+    console.log('Parsed expense data:', expenseData);
 
-    // Create binary data from base64
-    let audioBuffer: Uint8Array
-    try {
-      const binaryString = atob(base64Data)
-      audioBuffer = new Uint8Array(binaryString.length)
-      for (let i = 0; i < binaryString.length; i++) {
-        audioBuffer[i] = binaryString.charCodeAt(i)
-      }
-      console.log('Audio buffer created successfully, size:', audioBuffer.length)
-    } catch (e) {
-      console.error('Base64 decoding error:', e)
-      return new Response(
-        JSON.stringify({ error: 'Failed to decode audio data' }),
-        { 
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
-    }
-
-    // Create form data for OpenAI API
-    const formData = new FormData()
-    const audioBlob = new Blob([audioBuffer], { type: 'audio/webm' })
-    formData.append('file', audioBlob, 'audio.webm')
-    formData.append('model', 'whisper-1')
-
-    console.log('Sending to Whisper API...')
-
-    // Get transcription from Whisper API
-    let transcriptionResponse
-    try {
-      transcriptionResponse = await openai.createTranscription(
-        // @ts-ignore: FormData is not properly typed in OpenAI's types
-        formData,
-        'whisper-1'
-      )
-    } catch (e) {
-      console.error('Whisper API error:', e)
-      return new Response(
-        JSON.stringify({ error: 'Failed to transcribe audio' }),
-        { 
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
-    }
-
-    if (!transcriptionResponse?.data?.text) {
-      console.error('Invalid Whisper API response:', transcriptionResponse)
-      return new Response(
-        JSON.stringify({ error: 'Invalid response from Whisper API' }),
-        { 
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
-    }
-
-    const transcription = transcriptionResponse.data.text
-    console.log('Transcription received:', transcription)
-
-    // Use GPT to parse the transcription
-    console.log('Sending to GPT API...')
-    let parseResponse
-    try {
-      parseResponse = await openai.createChatCompletion({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content: `You are a helpful assistant that extracts expense information from text. 
-            Extract the amount (as a number), description (as text), and category (must be one of: food, transport, entertainment, shopping, utilities, other).
-            If a category isn't explicitly mentioned, infer it from the description.
-            Return only a JSON object with these three fields.`
-          },
-          {
-            role: "user",
-            content: transcription
-          }
-        ]
-      })
-    } catch (e) {
-      console.error('GPT API error:', e)
-      return new Response(
-        JSON.stringify({ error: 'Failed to parse expense data' }),
-        { 
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
-    }
-
-    const parsedText = parseResponse?.data?.choices?.[0]?.message?.content
-    if (!parsedText) {
-      console.error('Invalid GPT API response:', parseResponse)
-      return new Response(
-        JSON.stringify({ error: 'Invalid response from GPT API' }),
-        { 
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
-    }
-
-    console.log('GPT response:', parsedText)
-    
-    let expenseData
-    try {
-      expenseData = JSON.parse(parsedText)
-      if (!expenseData?.amount || !expenseData?.description || !expenseData?.category) {
-        throw new Error('Missing required fields in parsed expense data')
-      }
-      console.log('Parsed expense data:', expenseData)
-    } catch (e) {
-      console.error('JSON parsing error:', e)
-      return new Response(
-        JSON.stringify({ error: 'Failed to parse expense data' }),
-        { 
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
-    }
-
-    // Save to database
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    );
 
-    console.log('Saving expense to database...')
-
-    // First, ensure the category exists or create it
-    const { data: categoryData, error: categoryError } = await supabaseClient
-      .from('categories')
-      .select('id')
-      .eq('name', expenseData.category)
-      .single()
-
-    let categoryId
-    if (categoryError) {
-      // Category doesn't exist, create it
-      const { data: newCategory, error: createCategoryError } = await supabaseClient
-        .from('categories')
-        .insert({ name: expenseData.category })
-        .select()
-        .single()
-
-      if (createCategoryError) {
-        console.error('Error creating category:', createCategoryError)
-        return new Response(
-          JSON.stringify({ error: 'Failed to create category' }),
-          { 
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        )
-      }
-      categoryId = newCategory.id
-    } else {
-      categoryId = categoryData.id
-    }
-
-    // Save the expense
-    const { error: expenseError } = await supabaseClient
-      .from('expenses')
-      .insert({
-        user_id: requestData.userId,
-        category_id: categoryId,
-        description: expenseData.description,
-        amount: expenseData.amount,
-        transcription: transcription
-      })
-
-    if (expenseError) {
-      console.error('Error saving expense:', expenseError)
-      return new Response(
-        JSON.stringify({ error: 'Failed to save expense' }),
-        { 
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
-    }
-    
-    console.log('Expense saved successfully')
+    console.log('Saving expense to database...');
+    await saveExpenseToDatabase(supabaseClient, requestData.userId, expenseData, transcription);
+    console.log('Expense saved successfully');
 
     return new Response(
       JSON.stringify({
@@ -266,15 +45,9 @@ serve(async (req) => {
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       },
-    )
+    );
   } catch (err) {
-    console.error('Edge function error:', err)
-    return new Response(
-      JSON.stringify({ error: err?.message || 'Internal server error' }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      },
-    )
+    console.error('Edge function error:', err);
+    return createErrorResponse(err?.message || 'Internal server error');
   }
-})
+});
