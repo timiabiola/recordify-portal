@@ -1,21 +1,19 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { Configuration, OpenAIApi } from 'https://esm.sh/openai@3.2.1';
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { Configuration, OpenAIApi } from 'https://esm.sh/openai@3.2.1'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+}
 
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    // Parse request body
-    const { audio, userId } = await req.json();
+    const { audio, userId } = await req.json()
     
     if (!audio || !userId) {
       console.error('Missing required fields:', { hasAudio: !!audio, hasUserId: !!userId });
