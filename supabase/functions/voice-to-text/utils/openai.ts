@@ -1,11 +1,38 @@
 import OpenAI from 'https://esm.sh/openai@4.20.1';
 
+// Simple in-memory rate limiting (resets on function cold starts)
+let requestsInLastMinute = 0;
+const MAX_REQUESTS_PER_MINUTE = 50; // Adjust this based on your plan
+const lastRequestTimes: number[] = [];
+
+function checkRateLimit() {
+  const now = Date.now();
+  const oneMinuteAgo = now - 60000;
+  
+  // Remove requests older than 1 minute
+  while (lastRequestTimes.length > 0 && lastRequestTimes[0] < oneMinuteAgo) {
+    lastRequestTimes.shift();
+  }
+  
+  if (lastRequestTimes.length >= MAX_REQUESTS_PER_MINUTE) {
+    throw new Error('Rate limit exceeded. Please try again in a minute.');
+  }
+  
+  lastRequestTimes.push(now);
+}
+
 export async function transcribeAudio(audioBlob: Blob) {
   console.log('Starting audio transcription...');
   console.log('Audio blob size:', audioBlob.size);
   console.log('Audio blob type:', audioBlob.type);
   
   try {
+    checkRateLimit();
+
+    if (!Deno.env.get('OPENAI_API_KEY')) {
+      throw new Error('OpenAI API key not configured');
+    }
+
     const formData = new FormData();
     formData.append('file', audioBlob, 'audio.webm');
     formData.append('model', 'whisper-1');
@@ -21,11 +48,18 @@ export async function transcribeAudio(audioBlob: Blob) {
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error('Whisper API error response:', {
+      console.error('Whisper API error:', {
         status: response.status,
         statusText: response.statusText,
         error: errorData
       });
+
+      if (response.status === 429) {
+        throw new Error('OpenAI rate limit reached. Please try again later.');
+      } else if (response.status === 401) {
+        throw new Error('OpenAI API key is invalid or expired.');
+      }
+      
       throw new Error(`Whisper API error: ${errorData}`);
     }
 
@@ -53,6 +87,8 @@ export async function extractExpenseDetails(text: string) {
   console.log('Starting expense extraction from text:', text);
   
   try {
+    checkRateLimit();
+
     const openai = new OpenAI({
       apiKey: Deno.env.get('OPENAI_API_KEY'),
     });
@@ -101,9 +137,16 @@ export async function extractExpenseDetails(text: string) {
     console.error('Error in extractExpenseDetails:', {
       name: error.name,
       message: error.message,
-      stack: error.stack,
-      apiKey: Deno.env.get('OPENAI_API_KEY') ? 'Present' : 'Missing'
+      stack: error.stack
     });
+
+    // Check for specific OpenAI error types
+    if (error.message.includes('rate limit')) {
+      throw new Error('OpenAI rate limit reached. Please try again later.');
+    } else if (error.message.includes('invalid')) {
+      throw new Error('OpenAI API key is invalid or expired.');
+    }
+    
     throw error;
   }
 }
