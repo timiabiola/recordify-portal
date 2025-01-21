@@ -43,16 +43,33 @@ export async function extractExpenseDetails(text: string) {
       messages: [
         {
           role: "system",
-          content: `You are a JSON-only response system. Return a valid JSON array containing exactly one expense object.
-Do not include any explanatory text, markdown formatting, or code blocks.
-The expense object must have these exact fields:
+          content: `You are a helpful assistant that categorizes expenses into exactly one of these three categories:
+          
+1. essentials: Items an adult in North America would consider "needs" including:
+   - Bills, mortgage, rent
+   - Groceries
+   - Essential daily living items
+   - Car payments, insurance
+   - Clothing, personal grooming
+   - Healthcare expenses
+
+2. monthly_recurring:
+   - Subscription services (Netflix, Disney+, etc.)
+   - Monthly memberships
+   - Regular recurring payments
+
+3. leisure:
+   - Entertainment (movies, concerts)
+   - Dining out, restaurants
+   - Hobbies and recreation
+   - Non-essential shopping
+
+Return a valid JSON array containing exactly one expense object with these fields:
 {
   "amount": number,
   "description": string,
-  "category": string (one of: food, transportation, entertainment, shopping, bills, other)
-}
-Example valid response:
-[{"amount":25.50,"description":"lunch at cafe","category":"food"}]`
+  "category": string (one of: essentials, monthly_recurring, leisure)
+}`
         },
         {
           role: "user",
@@ -71,7 +88,6 @@ Example valid response:
     console.log('OpenAI raw response:', response);
     
     try {
-      // Remove any potential whitespace and validate JSON structure
       const cleanedResponse = response.trim();
       if (!cleanedResponse.startsWith('[') || !cleanedResponse.endsWith(']')) {
         console.error('Invalid JSON array format:', cleanedResponse);
@@ -84,7 +100,6 @@ Example valid response:
         return [];
       }
 
-      // Validate each expense object
       const validExpenses = parsed.filter(expense => {
         const isValid = 
           typeof expense === 'object' &&
@@ -92,7 +107,7 @@ Example valid response:
           typeof expense.amount === 'number' && 
           typeof expense.description === 'string' && 
           typeof expense.category === 'string' &&
-          ['food', 'transportation', 'entertainment', 'shopping', 'bills', 'other'].includes(expense.category.toLowerCase());
+          ['essentials', 'monthly_recurring', 'leisure'].includes(expense.category);
         
         if (!isValid) {
           console.error('Invalid expense format:', expense);
