@@ -9,11 +9,13 @@ import {
 import { CategoryIcon } from "./CategoryIcon";
 import { formatCategoryName } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { format } from "date-fns";
 
 type Expense = {
   id: string;
   description: string;
   amount: number;
+  created_at: string;
   categories: {
     name: string;
   };
@@ -34,6 +36,7 @@ export const ExpensesTable = ({ expenses }: ExpensesTableProps) => {
             <TableHead>{isMobile ? 'Desc.' : 'Description'}</TableHead>
             {!isMobile && <TableHead>Category</TableHead>}
             <TableHead className="text-right">Amount</TableHead>
+            <TableHead className="text-right">{isMobile ? 'Date' : 'Created At'}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -56,11 +59,14 @@ export const ExpensesTable = ({ expenses }: ExpensesTableProps) => {
               <TableCell className="text-right text-destructive font-medium">
                 ${Number(expense.amount).toFixed(2)}
               </TableCell>
+              <TableCell className="text-right text-muted-foreground">
+                {format(new Date(expense.created_at), isMobile ? 'MM/dd/yy' : 'MMM dd, yyyy')}
+              </TableCell>
             </TableRow>
           ))}
           {(!expenses || expenses.length === 0) && (
             <TableRow>
-              <TableCell colSpan={isMobile ? 2 : 3} className="text-center text-muted-foreground">
+              <TableCell colSpan={isMobile ? 3 : 4} className="text-center text-muted-foreground">
                 No expenses found
               </TableCell>
             </TableRow>
