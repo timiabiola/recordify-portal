@@ -31,37 +31,55 @@ serve(async (req) => {
     })
 
     if (!requestData.audio || !requestData.userId) {
-      throw new Error('Audio data and userId are required')
+      return new Response(
+        JSON.stringify({ error: 'Audio data and userId are required' }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
     }
 
     // Clean the base64 string
     const base64Data = requestData.audio.split(',')[1] || requestData.audio
     if (!base64Data) {
-      throw new Error('Invalid audio data format')
+      return new Response(
+        JSON.stringify({ error: 'Invalid audio data format' }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
     }
 
     // Create binary data from base64
     let audioBuffer: Uint8Array
     try {
       // Process base64 in chunks to prevent memory issues
-      const chunkSize = 1024;
-      const chunks: number[] = [];
-      let offset = 0;
+      const chunkSize = 1024
+      const chunks: number[] = []
+      let offset = 0
       
       while (offset < base64Data.length) {
-        const chunk = base64Data.slice(offset, offset + chunkSize);
-        const binaryChunk = atob(chunk);
+        const chunk = base64Data.slice(offset, offset + chunkSize)
+        const binaryChunk = atob(chunk)
         for (let i = 0; i < binaryChunk.length; i++) {
-          chunks.push(binaryChunk.charCodeAt(i));
+          chunks.push(binaryChunk.charCodeAt(i))
         }
-        offset += chunkSize;
+        offset += chunkSize
       }
       
-      audioBuffer = new Uint8Array(chunks);
+      audioBuffer = new Uint8Array(chunks)
       console.log('Audio buffer created successfully, size:', audioBuffer.length)
     } catch (e) {
       console.error('Base64 decoding error:', e)
-      throw new Error('Failed to decode audio data')
+      return new Response(
+        JSON.stringify({ error: 'Failed to decode audio data' }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
     }
 
     // Create form data for OpenAI API
@@ -81,7 +99,13 @@ serve(async (req) => {
 
     if (!transcriptionResponse.data?.text) {
       console.error('Invalid Whisper API response:', transcriptionResponse)
-      throw new Error('Invalid response from Whisper API')
+      return new Response(
+        JSON.stringify({ error: 'Invalid response from Whisper API' }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
     }
 
     const transcription = transcriptionResponse.data.text
@@ -106,12 +130,16 @@ serve(async (req) => {
       ]
     })
 
-    console.log('GPT API response received:', parseResponse.data)
-
     const parsedText = parseResponse.data?.choices?.[0]?.message?.content
     if (!parsedText) {
       console.error('Invalid GPT API response:', parseResponse)
-      throw new Error('Invalid response from GPT API')
+      return new Response(
+        JSON.stringify({ error: 'Invalid response from GPT API' }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
     }
 
     console.log('GPT response:', parsedText)
@@ -125,7 +153,13 @@ serve(async (req) => {
       console.log('Parsed expense data:', expenseData)
     } catch (e) {
       console.error('JSON parsing error:', e)
-      throw new Error('Failed to parse expense data')
+      return new Response(
+        JSON.stringify({ error: 'Failed to parse expense data' }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
     }
 
     // Save to database
@@ -154,7 +188,13 @@ serve(async (req) => {
 
       if (createCategoryError) {
         console.error('Error creating category:', createCategoryError)
-        throw new Error('Failed to create category')
+        return new Response(
+          JSON.stringify({ error: 'Failed to create category' }),
+          { 
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        )
       }
       categoryId = newCategory.id
     } else {
@@ -174,7 +214,13 @@ serve(async (req) => {
 
     if (expenseError) {
       console.error('Error saving expense:', expenseError)
-      throw new Error('Failed to save expense')
+      return new Response(
+        JSON.stringify({ error: 'Failed to save expense' }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
     }
     
     console.log('Expense saved successfully')
@@ -191,7 +237,7 @@ serve(async (req) => {
   } catch (err) {
     console.error('Edge function error:', err)
     return new Response(
-      JSON.stringify({ error: err.message }),
+      JSON.stringify({ error: err.message || 'Internal server error' }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
