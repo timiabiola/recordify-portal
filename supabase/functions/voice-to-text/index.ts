@@ -3,13 +3,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { processBase64Chunks, validateAudioFormat } from './utils/audio.ts';
 import { transcribeAudio, extractExpenseDetails } from './utils/openai.ts';
 import { authenticateRequest } from './utils/auth.ts';
-import { 
-  parseRequestBody, 
-  handleCorsRequest, 
-  createErrorResponse, 
-  createSuccessResponse 
-} from './utils/request.ts';
 import { saveExpense } from './utils/expense.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -24,7 +19,6 @@ serve(async (req) => {
     headers: Object.fromEntries(req.headers.entries())
   });
 
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       status: 204,
@@ -53,7 +47,7 @@ serve(async (req) => {
     const { data: binaryAudio, mimeType, format } = processBase64Chunks(audio);
     
     // Check for empty audio (silence)
-    if (binaryAudio.length < 1000) { // Threshold for detecting silence
+    if (binaryAudio.length < 1000) {
       return new Response(
         JSON.stringify({
           success: false,
@@ -82,6 +76,44 @@ serve(async (req) => {
     
     const blob = new Blob([binaryAudio], { type: mimeType });
 
+    // Get user from auth header
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Authorization required'
+        }),
+        { 
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Extract user ID from token
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    
+    if (authError || !user) {
+      console.error('Auth error:', authError);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Invalid authentication'
+        }),
+        { 
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
     // Transcribe audio
     console.log('Transcribing audio...');
     const text = await transcribeAudio(blob);
@@ -92,8 +124,36 @@ serve(async (req) => {
     const expenses = await extractExpenseDetails(text);
     console.log('Extracted expenses:', expenses);
 
+    // Save each expense
+    const savedExpenses = [];
+    for (const expense of expenses) {
+      try {
+        const savedExpense = await saveExpense(supabaseAdmin, user.id, expense, text);
+        savedExpenses.push(savedExpense);
+      } catch (error) {
+        console.error('Error saving expense:', error);
+        // Continue with other expenses even if one fails
+      }
+    }
+
+    if (savedExpenses.length === 0) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Failed to save any expenses'
+        }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
     return new Response(
-      JSON.stringify({ success: true, expenses }),
+      JSON.stringify({
+        success: true,
+        expense: savedExpenses
+      }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
