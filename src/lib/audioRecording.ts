@@ -10,6 +10,26 @@ export const startRecording = async (setIsRecording: (isRecording: boolean) => v
       throw new Error('MediaRecorder is not supported in this browser');
     }
     
+    // Get supported MIME types
+    const supportedMimeTypes = [
+      'audio/webm',
+      'audio/webm;codecs=opus',
+      'audio/ogg;codecs=opus',
+      'audio/mp4',
+      'audio/aac',
+      'audio/wav'
+    ];
+
+    // Find the first supported MIME type
+    const mimeType = supportedMimeTypes.find(type => MediaRecorder.isTypeSupported(type));
+    
+    if (!mimeType) {
+      console.error('No supported MIME types found');
+      throw new Error('No supported audio format found in this browser');
+    }
+    
+    console.log('Using MIME type:', mimeType);
+    
     // Specific constraints for better mobile compatibility
     const stream = await navigator.mediaDevices.getUserMedia({ 
       audio: {
@@ -29,13 +49,6 @@ export const startRecording = async (setIsRecording: (isRecording: boolean) => v
     if (!audioTrack || !audioTrack.enabled) {
       throw new Error('No active audio track available');
     }
-    
-    // Check for supported MIME types
-    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-      ? 'audio/webm;codecs=opus'
-      : 'audio/webm';
-      
-    console.log('Using MIME type:', mimeType);
     
     const mediaRecorder = new MediaRecorder(stream, {
       mimeType,
