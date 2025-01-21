@@ -61,10 +61,16 @@ Remember to return ONLY the JSON object, no markdown or code blocks.`;
       throw new Error(`OpenAI API error: ${errorData}`);
     }
 
-    const data = await completion.json();
-    console.log('OpenAI raw response:', JSON.stringify(data, null, 2));
+    let data;
+    try {
+      data = await completion.json();
+      console.log('OpenAI raw response:', JSON.stringify(data, null, 2));
+    } catch (jsonError) {
+      console.error('Failed to parse OpenAI API response:', jsonError);
+      throw new Error('Invalid JSON response from OpenAI API');
+    }
 
-    if (!data.choices?.[0]?.message?.content) {
+    if (!data?.choices?.[0]?.message?.content) {
       console.error('Invalid OpenAI response format:', data);
       throw new Error('Invalid response format from OpenAI');
     }
@@ -72,7 +78,15 @@ Remember to return ONLY the JSON object, no markdown or code blocks.`;
     const response = data.choices[0].message.content;
     console.log("OpenAI extracted content:", response);
     
-    return parseOpenAIResponse(response);
+    try {
+      return parseOpenAIResponse(response);
+    } catch (parseError) {
+      console.error('Failed to parse expense details:', {
+        error: parseError,
+        rawResponse: response
+      });
+      throw new Error('Failed to parse expense details from OpenAI response: ' + parseError.message);
+    }
   } catch (error) {
     console.error('Error in extractExpenseDetails:', {
       name: error.name,
