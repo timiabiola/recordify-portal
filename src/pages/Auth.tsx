@@ -25,17 +25,13 @@ const Auth = () => {
       console.log('Auth state changed:', event, session ? 'session exists' : 'no session');
       
       if (event === 'SIGNED_IN') {
+        console.log('User signed in successfully');
         navigate('/');
       }
       if (event === 'SIGNED_OUT') {
         console.log('User signed out successfully');
         setErrorMessage("");
         toast.success('Signed out successfully');
-      }
-      // Handle sign out error
-      if (event === 'SIGN_OUT_ERROR') {
-        console.error('Error signing out:', session);
-        toast.error('Error signing out. Please try again.');
       }
     });
 

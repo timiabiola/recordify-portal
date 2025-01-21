@@ -19,7 +19,7 @@ export const signOut = async () => {
       toast.error('Error signing out. Please try again.');
       throw error;
     }
-    toast.success('Signed out successfully');
+    console.log('Sign out successful');
   } catch (error) {
     console.error('Error in signOut function:', error);
     toast.error('Error signing out. Please try again.');
