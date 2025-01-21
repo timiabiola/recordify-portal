@@ -3,18 +3,22 @@ import { supabase } from "@/integrations/supabase/client";
 export const startRecording = async (setIsRecording: (value: boolean) => void) => {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const mediaRecorder = new MediaRecorder(stream);
+    const mediaRecorder = new MediaRecorder(stream, {
+      mimeType: 'audio/webm' // Specify the format explicitly
+    });
     const audioChunks: Blob[] = [];
 
     mediaRecorder.ondataavailable = (event) => {
-      if (event.data.size > 0) {
-        audioChunks.push(event.data);
-      }
+      audioChunks.push(event.data);
     };
 
     mediaRecorder.onstop = async () => {
       const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-      await sendAudioToSupabase(audioBlob);
+      try {
+        await sendAudioToSupabase(audioBlob);
+      } catch (error) {
+        console.error('Error sending audio:', error);
+      }
       stream.getTracks().forEach(track => track.stop());
     };
 
@@ -25,30 +29,23 @@ export const startRecording = async (setIsRecording: (value: boolean) => void) =
   } catch (error) {
     console.error('Error starting recording:', error);
     setIsRecording(false);
-    throw error;
+    return null;
   }
 };
 
 const sendAudioToSupabase = async (audioBlob: Blob) => {
   try {
-    // Convert blob to base64
-    const reader = new FileReader();
-    const base64Promise = new Promise<string>((resolve, reject) => {
-      reader.onloadend = () => {
-        const base64Audio = reader.result as string;
-        resolve(base64Audio);
-      };
-      reader.onerror = reject;
-    });
-    
-    reader.readAsDataURL(audioBlob);
-    const base64Audio = await base64Promise;
-
     // Get current user
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       throw new Error('User not authenticated');
     }
+
+    // Convert blob to base64
+    const buffer = await audioBlob.arrayBuffer();
+    const base64Audio = btoa(
+      String.fromCharCode(...new Uint8Array(buffer))
+    );
 
     // Send to Edge Function
     const { data, error } = await supabase.functions.invoke('voice-to-text', {
