@@ -43,15 +43,16 @@ export async function extractExpenseDetails(text: string) {
       messages: [
         {
           role: "system",
-          content: `You are a helpful assistant that extracts expense information from text.
-You must return ONLY valid JSON with no additional text or formatting.
-The response should be an array with a single object containing:
-- amount (number)
-- description (string)
-- category (string, one of: food, transportation, entertainment, shopping, bills, other)
-
+          content: `You are a JSON-only response system. Return a valid JSON array containing exactly one expense object.
+Do not include any explanatory text, markdown formatting, or code blocks.
+The expense object must have these exact fields:
+{
+  "amount": number,
+  "description": string,
+  "category": string (one of: food, transportation, entertainment, shopping, bills, other)
+}
 Example valid response:
-[{"amount": 25.50, "description": "lunch at cafe", "category": "food"}]`
+[{"amount":25.50,"description":"lunch at cafe","category":"food"}]`
         },
         {
           role: "user",
@@ -70,15 +71,24 @@ Example valid response:
     console.log('OpenAI raw response:', response);
     
     try {
-      const parsed = JSON.parse(response.trim());
-      if (!Array.isArray(parsed)) {
-        console.error('Invalid response format - not an array:', parsed);
+      // Remove any potential whitespace and validate JSON structure
+      const cleanedResponse = response.trim();
+      if (!cleanedResponse.startsWith('[') || !cleanedResponse.endsWith(']')) {
+        console.error('Invalid JSON array format:', cleanedResponse);
         return [];
       }
 
-      // Validate each expense
+      const parsed = JSON.parse(cleanedResponse);
+      if (!Array.isArray(parsed)) {
+        console.error('Parsed response is not an array:', parsed);
+        return [];
+      }
+
+      // Validate each expense object
       const validExpenses = parsed.filter(expense => {
         const isValid = 
+          typeof expense === 'object' &&
+          expense !== null &&
           typeof expense.amount === 'number' && 
           typeof expense.description === 'string' && 
           typeof expense.category === 'string' &&
