@@ -66,7 +66,7 @@ serve(async (req) => {
 
     console.log('Processing request for user:', user.id);
 
-    // Process audio in chunks and transcribe
+    // Process audio and transcribe
     try {
       const binaryAudio = processBase64Chunks(audio);
       const blob = new Blob([binaryAudio], { type: 'audio/webm' });
@@ -75,7 +75,7 @@ serve(async (req) => {
       if (!validateAudioFormat('audio.webm')) {
         return new Response(
           JSON.stringify({
-            error: `Invalid file format. Supported formats: ${SUPPORTED_FORMATS.join(', ')}`,
+            error: 'Invalid file format. Supported formats: flac, m4a, mp3, mp4, mpeg, mpga, oga, ogg, wav, webm',
           }), 
           { 
             status: 400,
@@ -85,8 +85,22 @@ serve(async (req) => {
       }
       
       // Transcribe audio using Whisper API
-      const text = await transcribeAudio(blob);
-      console.log('Audio transcription successful:', text);
+      let text;
+      try {
+        text = await transcribeAudio(blob);
+        console.log('Audio transcription successful:', text);
+      } catch (transcriptionError) {
+        console.error('Transcription error:', transcriptionError);
+        return new Response(
+          JSON.stringify({
+            error: 'Failed to transcribe audio. Please ensure the file format is supported and try again.',
+          }),
+          { 
+            status: 500,
+            headers: corsHeaders 
+          }
+        );
+      }
 
       // Extract expense details from transcribed text
       console.log('Extracting expense details...');
