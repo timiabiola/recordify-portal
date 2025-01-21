@@ -32,8 +32,8 @@ serve(async (req) => {
     const { audio } = await parseRequestBody(req);
 
     // Process and validate audio
-    const binaryAudio = processBase64Chunks(audio);
-    const blob = new Blob([binaryAudio], { type: 'audio/webm' });
+    const { data: binaryAudio, mimeType } = processBase64Chunks(audio);
+    const blob = new Blob([binaryAudio], { type: mimeType });
     
     if (!validateAudioFormat('audio.webm')) {
       return createErrorResponse(

@@ -10,20 +10,15 @@ export function processBase64Chunks(base64String: string, chunkSize = 32768) {
   try {
     console.log('Processing base64 string of length:', base64String.length);
     
-    // Remove the data URL prefix if present
+    // Remove the data URL prefix if present and extract MIME type
     let cleanBase64 = base64String;
-    const matches = base64String.match(/^data:(.+);base64,(.+)$/);
+    let mimeType = 'audio/webm'; // Default MIME type
     
+    const matches = base64String.match(/^data:(.+);base64,(.+)$/);
     if (matches) {
-      const mimeType = matches[1];
+      mimeType = matches[1];
       cleanBase64 = matches[2];
-      console.log('Processing file with MIME type:', mimeType);
-      
-      // Extract extension from mime type (e.g., 'audio/webm' -> 'webm')
-      const format = mimeType.split('/')[1];
-      if (!validateAudioFormat(`file.${format}`)) {
-        throw new Error(`Unsupported audio format. Supported formats are: ${SUPPORTED_FORMATS.join(', ')}`);
-      }
+      console.log('Detected MIME type:', mimeType);
     }
 
     // Remove any whitespace
@@ -69,7 +64,7 @@ export function processBase64Chunks(base64String: string, chunkSize = 32768) {
     }
 
     console.log('Successfully combined all chunks into final array');
-    return result;
+    return { data: result, mimeType };
   } catch (error) {
     console.error('Error in processBase64Chunks:', {
       error: error.message,
