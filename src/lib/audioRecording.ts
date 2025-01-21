@@ -45,19 +45,19 @@ const sendAudioToSupabase = async (audioBlob: Blob) => {
     const base64Audio = await blobToBase64(audioBlob);
     console.log('Base64 audio length:', base64Audio.length);
     
-    // Get the current user
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      console.error('No authenticated user found');
-      throw new Error('User not authenticated');
+    // Get the current session
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      console.error('No active session found');
+      toast.error('Please sign in to record expenses');
+      throw new Error('Not authenticated');
     }
-    console.log('User authenticated, ID:', user.id);
 
-    console.log('Invoking voice-to-text function...');
+    console.log('Invoking voice-to-text function with auth token...');
     const { data, error } = await supabase.functions.invoke('voice-to-text', {
-      body: { 
-        audio: base64Audio,
-        userId: user.id 
+      body: { audio: base64Audio },
+      headers: {
+        Authorization: `Bearer ${session.access_token}`
       }
     });
 
