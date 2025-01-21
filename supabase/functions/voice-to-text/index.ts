@@ -32,15 +32,17 @@ serve(async (req) => {
     const { audio } = await parseRequestBody(req);
 
     // Process and validate audio
-    const { data: binaryAudio, mimeType } = processBase64Chunks(audio);
-    const blob = new Blob([binaryAudio], { type: mimeType });
+    const { data: binaryAudio, mimeType, format } = processBase64Chunks(audio);
     
-    if (!validateAudioFormat('audio.webm')) {
+    // Validate format before creating blob
+    if (!validateAudioFormat(`file.${format}`)) {
       return createErrorResponse(
-        new Error('Invalid audio format. Please ensure you are using a supported format (webm, mp3, wav).'),
+        new Error(`Invalid audio format. Please ensure you are using a supported format (webm, mp3, wav).`),
         400
       );
     }
+    
+    const blob = new Blob([binaryAudio], { type: mimeType });
 
     // Transcribe audio
     const text = await transcribeAudio(blob);
