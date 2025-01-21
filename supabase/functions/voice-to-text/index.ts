@@ -79,7 +79,7 @@ serve(async (req) => {
     // Use GPT to parse the transcription
     console.log('Sending to GPT API...')
     const parseResponse = await openai.createChatCompletion({
-      model: "gpt-4",
+      model: "gpt-4o",
       messages: [
         {
           role: "system",
