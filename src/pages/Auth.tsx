@@ -11,61 +11,75 @@ const Auth = () => {
   const navigate = useNavigate();
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
 
   useEffect(() => {
     let mounted = true;
 
     const checkSession = async () => {
       try {
-        console.log('Checking session state...');
-        setIsLoading(true);
+        console.log('Auth page: Starting session check');
+        
+        if (!mounted) {
+          console.log('Component unmounted, aborting session check');
+          return;
+        }
 
-        // In preview mode, always start with a clean slate
+        // In preview mode, always start fresh
         if (isPreviewMode()) {
-          console.log('Preview mode detected, clearing all sessions');
+          console.log('Preview mode detected, clearing session state');
           await supabase.auth.signOut({ scope: 'global' });
           localStorage.clear();
           if (!mounted) return;
           setIsLoading(false);
+          setIsCheckingSession(false);
           return;
         }
 
         const { data: { session }, error } = await supabase.auth.getSession();
         
+        if (!mounted) return;
+
         if (error) {
           console.error('Session check error:', error);
-          if (!mounted) return;
           setErrorMessage(error.message);
           setIsLoading(false);
+          setIsCheckingSession(false);
           return;
         }
 
         if (session) {
           console.log('Active session found, redirecting to home');
-          if (!mounted) return;
           navigate('/');
         } else {
-          console.log('No active session');
-          if (!mounted) return;
+          console.log('No active session found');
           setIsLoading(false);
         }
+        
+        setIsCheckingSession(false);
       } catch (error) {
-        console.error('Unexpected error:', error);
+        console.error('Unexpected error during session check:', error);
         if (!mounted) return;
         setErrorMessage('An unexpected error occurred');
         setIsLoading(false);
+        setIsCheckingSession(false);
       }
     };
 
+    // Initial session check
     checkSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event);
-
-      if (!mounted) return;
+    // Set up auth state change listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state changed:', event, 'Session:', session ? 'exists' : 'null');
+      
+      if (!mounted) {
+        console.log('Component unmounted, ignoring auth state change');
+        return;
+      }
 
       if (event === 'SIGNED_IN') {
-        console.log('Sign in successful');
+        console.log('Sign in successful, redirecting to home');
         setErrorMessage('');
         navigate('/');
       }
@@ -73,29 +87,26 @@ const Auth = () => {
       if (event === 'SIGNED_OUT') {
         console.log('Sign out detected');
         setErrorMessage('');
+        setIsLoading(false);
         
         if (isPreviewMode()) {
-          console.log('Preview mode: forcing page reload');
+          console.log('Preview mode: reloading page');
           window.location.href = '/auth';
           return;
         }
-        
-        navigate('/auth');
-      }
-
-      if (event === 'USER_UPDATED') {
-        console.log('User data updated');
       }
     });
 
+    // Cleanup function
     return () => {
-      console.log('Cleaning up auth subscriptions');
+      console.log('Auth page: Cleaning up');
       mounted = false;
       subscription.unsubscribe();
     };
   }, [navigate]);
 
-  if (isLoading) {
+  // Show loading spinner only during initial session check
+  if (isCheckingSession) {
     return <LoadingSpinner />;
   }
 
@@ -109,9 +120,13 @@ const Auth = () => {
 
         <ErrorAlert message={errorMessage} />
 
-        <div className="bg-card p-6 rounded-lg shadow-sm">
-          <AuthForm />
-        </div>
+        {isLoading ? (
+          <LoadingSpinner />
+        ) : (
+          <div className="bg-card p-6 rounded-lg shadow-sm">
+            <AuthForm />
+          </div>
+        )}
       </div>
     </div>
   );
