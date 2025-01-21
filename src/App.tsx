@@ -18,8 +18,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const checkSession = async () => {
       try {
+        // In preview mode, always require authentication
         if (isPreviewMode()) {
-          console.log('Preview mode detected, clearing auth state');
+          console.log('Preview mode: requiring authentication');
           setIsAuthenticated(false);
           return;
         }
@@ -35,14 +36,17 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
     checkSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Auth state changed:', event, 'Session:', session ? 'exists' : 'null');
-      setIsAuthenticated(!!session);
-    });
+    // Only set up auth state change listener if not in preview mode
+    if (!isPreviewMode()) {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        console.log('Auth state changed:', event, 'Session:', session ? 'exists' : 'null');
+        setIsAuthenticated(!!session);
+      });
 
-    return () => {
-      subscription.unsubscribe();
-    };
+      return () => {
+        subscription.unsubscribe();
+      };
+    }
   }, []);
 
   if (isAuthenticated === null) {

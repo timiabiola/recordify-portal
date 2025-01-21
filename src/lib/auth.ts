@@ -7,6 +7,12 @@ export const isPreviewMode = () => {
 
 export const getAuthSession = async () => {
   try {
+    // Don't check session in preview mode
+    if (isPreviewMode()) {
+      console.log('Preview mode: skipping session check');
+      return null;
+    }
+
     const { data: { session }, error } = await supabase.auth.getSession();
     
     if (error) {

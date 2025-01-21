@@ -14,9 +14,9 @@ const Auth = () => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        // In preview mode, always show auth form
         if (isPreviewMode()) {
-          console.log('Preview mode detected, clearing session');
-          await supabase.auth.signOut();
+          console.log('Preview mode: showing auth form');
           setIsLoading(false);
           return;
         }
@@ -35,6 +35,14 @@ const Auth = () => {
     };
 
     checkAuth();
+  }, [navigate]);
+
+  // Only set up auth state change listener if not in preview mode
+  useEffect(() => {
+    if (isPreviewMode()) {
+      console.log('Preview mode: skipping auth state listener');
+      return;
+    }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('Auth state changed:', event, session);
