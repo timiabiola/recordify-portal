@@ -27,7 +27,6 @@ const Auth = () => {
         // Handle preview mode
         if (isPreviewMode()) {
           console.log('Preview mode detected on Auth page');
-          // Clear any existing session
           await supabase.auth.signOut();
           localStorage.clear();
           if (!mounted) return;
@@ -51,7 +50,7 @@ const Auth = () => {
 
         if (session) {
           console.log('Active session found, redirecting to home');
-          navigate('/');
+          navigate('/', { replace: true });
         } else {
           console.log('No active session found, showing auth form');
           setIsLoading(false);
@@ -76,10 +75,10 @@ const Auth = () => {
         return;
       }
 
-      if (event === 'SIGNED_IN') {
+      if (event === 'SIGNED_IN' && session) {
         console.log('Sign in successful, redirecting to home');
         setErrorMessage('');
-        navigate('/');
+        navigate('/', { replace: true });
       }
 
       if (event === 'SIGNED_OUT') {

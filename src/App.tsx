@@ -76,8 +76,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       if (event === 'SIGNED_OUT') {
         console.log('User signed out');
         setIsAuthenticated(false);
-      } else {
-        setIsAuthenticated(!!session);
+      } else if (session) {
+        console.log('User authenticated');
+        setIsAuthenticated(true);
       }
     });
 
@@ -96,7 +97,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  return isAuthenticated ? children : <Navigate to="/auth" />;
+  return isAuthenticated ? children : <Navigate to="/auth" replace />;
 };
 
 const App = () => (
