@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { VoiceButton } from '@/components/VoiceButton';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { BarChart3 } from 'lucide-react';
+import { BarChart3, LogOut } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -115,8 +115,25 @@ const Index = () => {
     }
   };
 
+  const handleSignOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Error signing out",
+        description: error.message,
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
+      <div className="absolute top-4 right-4">
+        <Button variant="outline" size="icon" onClick={handleSignOut}>
+          <LogOut className="h-4 w-4" />
+        </Button>
+      </div>
+      
       <div className="text-center space-y-6 max-w-md w-full">
         <h1 className="text-4xl font-bold tracking-tight text-foreground">
           Record Your Expense
