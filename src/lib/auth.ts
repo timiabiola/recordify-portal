@@ -23,48 +23,71 @@ export const getAuthSession = async () => {
 
 export const signOut = async () => {
   try {
-    // Get current session state
-    const { data: { session } } = await supabase.auth.getSession();
+    console.log('Starting sign out process...');
     
-    if (!session) {
-      console.log('No active session found, redirecting to auth page');
-      window.location.href = '/auth';
-      return;
+    // Clear local storage and cookies related to auth
+    localStorage.removeItem('supabase.auth.token');
+    document.cookie = 'supabase-auth-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    
+    try {
+      // Attempt to sign out from Supabase
+      await supabase.auth.signOut();
+      console.log('Supabase sign out completed');
+    } catch (error: any) {
+      // If we get here with a session_not_found, that's actually okay
+      // It means we're already signed out
+      console.log('Sign out error (expected if session expired):', error);
     }
 
-    // Attempt to sign out
-    await supabase.auth.signOut({ scope: 'local' });
-    console.log('Sign out successful');
+    // Clear any remaining session state
+    await supabase.auth.clearSession();
+    
+    console.log('Sign out process completed');
     toast.success('Signed out successfully');
+    
+    // Always redirect to auth page after clearing everything
     window.location.href = '/auth';
-  } catch (error: any) {
-    console.error('Error during sign out:', error);
-    
-    // If session not found, just redirect to auth
-    if (error.message?.includes('session_not_found') || error.status === 403) {
-      console.log('Session expired or not found, redirecting to auth page');
-      window.location.href = '/auth';
-      return;
-    }
-    
-    toast.error('Error signing out');
-    // For any other errors, still redirect to auth page to ensure user can sign in again
+  } catch (error) {
+    console.error('Unexpected error during sign out:', error);
+    // Even if something went wrong, redirect to auth
     window.location.href = '/auth';
   }
 };
 
 export const refreshSession = async () => {
   try {
-    const { data: { session }, error } = await supabase.auth.getSession();
-    if (error || !session) {
-      console.error('Session refresh error:', error);
-      window.location.href = '/auth';
+    console.log('Attempting to refresh session...');
+    
+    // First try to get the current session
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError) {
+      console.error('Session refresh error:', sessionError);
       return null;
     }
+
+    if (!session) {
+      console.log('No active session found');
+      return null;
+    }
+
+    // If we have a session but it's expired, try to refresh it
+    if (session.expires_at && new Date(session.expires_at * 1000) < new Date()) {
+      console.log('Session expired, attempting refresh...');
+      const { data: { session: refreshedSession }, error: refreshError } = 
+        await supabase.auth.refreshSession();
+      
+      if (refreshError) {
+        console.error('Session refresh failed:', refreshError);
+        return null;
+      }
+      
+      return refreshedSession;
+    }
+
     return session;
   } catch (error) {
-    console.error('Error refreshing session:', error);
-    window.location.href = '/auth';
+    console.error('Error in refreshSession:', error);
     return null;
   }
 };
