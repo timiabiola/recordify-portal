@@ -31,11 +31,16 @@ const Dashboard = () => {
   const { data: categories } = useQuery({
     queryKey: ['categories'],
     queryFn: async () => {
+      console.log('Fetching categories...');
       const { data, error } = await supabase
         .from('categories')
         .select('*');
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching categories:', error);
+        throw error;
+      }
+      console.log('Categories fetched:', data);
       return data;
     },
   });
@@ -43,6 +48,7 @@ const Dashboard = () => {
   const { data: expenses } = useQuery({
     queryKey: ['expenses', selectedCategory],
     queryFn: async () => {
+      console.log('Fetching expenses for category:', selectedCategory);
       let query = supabase
         .from('expenses')
         .select(`
@@ -57,7 +63,11 @@ const Dashboard = () => {
       }
 
       const { data, error } = await query;
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching expenses:', error);
+        throw error;
+      }
+      console.log('Expenses fetched:', data);
       return data;
     },
   });
