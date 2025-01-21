@@ -1,6 +1,7 @@
 import { corsHeaders } from '../config.ts';
 
 export const createErrorResponse = (message: string, status = 500) => {
+  console.error('Creating error response:', message);
   return new Response(
     JSON.stringify({ error: message }),
     { 
@@ -27,17 +28,18 @@ export const validateRequestData = async (req: Request) => {
 };
 
 export const processBase64Audio = (audioData: string) => {
-  const base64Data = audioData.split(',')[1] || audioData;
-  if (!base64Data) {
-    throw new Error('Invalid audio data format');
-  }
-
   try {
+    const base64Data = audioData.split(',')[1] || audioData;
+    if (!base64Data) {
+      throw new Error('Invalid audio data format');
+    }
+
     const binaryString = atob(base64Data);
     const audioBuffer = new Uint8Array(binaryString.length);
     for (let i = 0; i < binaryString.length; i++) {
       audioBuffer[i] = binaryString.charCodeAt(i);
     }
+    
     console.log('Audio buffer created successfully, size:', audioBuffer.length);
     return audioBuffer;
   } catch (e) {

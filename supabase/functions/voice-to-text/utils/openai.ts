@@ -33,7 +33,7 @@ export const parseExpenseWithGPT = async (openai: OpenAIApi, transcription: stri
   console.log('Sending to GPT API...');
   
   const parseResponse = await openai.createChatCompletion({
-    model: "gpt-4o",
+    model: "gpt-4o-mini",
     messages: [
       {
         role: "system",
