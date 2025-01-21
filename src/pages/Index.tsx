@@ -14,6 +14,17 @@ const Index = () => {
 
   const startRecording = async () => {
     try {
+      // Check authentication first
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          variant: "destructive",
+          title: "Authentication Required",
+          description: "Please sign in to record expenses.",
+        });
+        return;
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaRecorder.current = new MediaRecorder(stream);
       audioChunks.current = [];
@@ -46,6 +57,7 @@ const Index = () => {
         title: "Could not start recording",
         description: "Please make sure you have granted microphone permissions.",
       });
+      setIsRecording(false);
     }
   };
 
@@ -98,7 +110,7 @@ const Index = () => {
       toast({
         variant: "destructive",
         title: "Error processing recording",
-        description: "There was an error processing your expense. Please try again.",
+        description: error.message || "There was an error processing your expense. Please try again.",
       });
     }
   };
