@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { Configuration, OpenAIApi } from 'https://esm.sh/openai@3.2.1'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.1.1'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -57,7 +58,7 @@ serve(async (req) => {
 
     // Parse expense details with GPT
     const gptResponse = await openai.createChatCompletion({
-      model: "gpt-3.5-turbo",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
