@@ -30,7 +30,6 @@ serve(async (req) => {
     // Parse request body
     const { audio } = await req.json();
     if (!audio) {
-      console.log('No audio data received');
       return new Response(
         JSON.stringify({
           success: false,
@@ -49,7 +48,6 @@ serve(async (req) => {
     
     // Check for empty audio (silence)
     if (binaryAudio.length < 1000) {
-      console.log('Audio data too short - likely silence');
       return new Response(
         JSON.stringify({
           success: false,
@@ -64,7 +62,6 @@ serve(async (req) => {
     
     // Validate format before creating blob
     if (!validateAudioFormat(`file.${format}`)) {
-      console.log('Invalid audio format:', format);
       return new Response(
         JSON.stringify({
           success: false,
@@ -82,7 +79,6 @@ serve(async (req) => {
     // Get user from auth header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      console.log('No authorization header found');
       return new Response(
         JSON.stringify({
           success: false,
@@ -128,27 +124,11 @@ serve(async (req) => {
     const expenses = await extractExpenseDetails(text);
     console.log('Extracted expenses:', expenses);
 
-    if (!Array.isArray(expenses)) {
-      console.error('Invalid expenses format:', expenses);
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'Failed to process expenses: Invalid format'
-        }),
-        { 
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
     // Save each expense
     const savedExpenses = [];
     for (const expense of expenses) {
       try {
-        console.log('Saving expense:', expense);
         const savedExpense = await saveExpense(supabaseAdmin, user.id, expense, text);
-        console.log('Expense saved successfully:', savedExpense);
         savedExpenses.push(savedExpense);
       } catch (error) {
         console.error('Error saving expense:', error);
@@ -157,7 +137,6 @@ serve(async (req) => {
     }
 
     if (savedExpenses.length === 0) {
-      console.error('No expenses were saved successfully');
       return new Response(
         JSON.stringify({
           success: false,
@@ -170,11 +149,10 @@ serve(async (req) => {
       );
     }
 
-    console.log('All expenses saved successfully:', savedExpenses);
     return new Response(
       JSON.stringify({
         success: true,
-        expenses: savedExpenses
+        expense: savedExpenses
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
