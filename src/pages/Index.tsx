@@ -5,14 +5,14 @@ import { Button } from '@/components/ui/button';
 import { BarChart3, LogOut } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { startRecording } from '@/lib/audioRecording';
 
 const Index = () => {
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorder = useRef<MediaRecorder | null>(null);
-  const audioChunks = useRef<Blob[]>([]);
   const { toast } = useToast();
 
-  const startRecording = async () => {
+  const handleStartRecording = async () => {
     try {
       // Check authentication first
       const { data: { user } } = await supabase.auth.getUser();
@@ -25,26 +25,8 @@ const Index = () => {
         return;
       }
 
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorder.current = new MediaRecorder(stream);
-      audioChunks.current = [];
-
-      mediaRecorder.current.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunks.current.push(event.data);
-        }
-      };
-
-      mediaRecorder.current.onstop = async () => {
-        const audioBlob = new Blob(audioChunks.current, { type: 'audio/webm' });
-        await processAudio(audioBlob);
-        
-        // Stop all tracks
-        stream.getTracks().forEach(track => track.stop());
-      };
-
-      mediaRecorder.current.start();
-      setIsRecording(true);
+      const recorder = await startRecording(setIsRecording);
+      mediaRecorder.current = recorder;
       
       toast({
         title: "Recording started",
@@ -61,56 +43,13 @@ const Index = () => {
     }
   };
 
-  const stopRecording = () => {
+  const handleStopRecording = () => {
     if (mediaRecorder.current && mediaRecorder.current.state !== 'inactive') {
       mediaRecorder.current.stop();
       setIsRecording(false);
       toast({
         title: "Processing your recording",
         description: "Please wait while we process your expense...",
-      });
-    }
-  };
-
-  const processAudio = async (audioBlob: Blob) => {
-    try {
-      // Get the current user
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-
-      // Convert blob to base64
-      const reader = new FileReader();
-      reader.readAsDataURL(audioBlob);
-      
-      reader.onloadend = async () => {
-        const base64Audio = reader.result as string;
-        
-        // Send to our Edge Function
-        const { data, error } = await supabase.functions.invoke('voice-to-text', {
-          body: { 
-            audio: base64Audio,
-            userId: user.id
-          }
-        });
-
-        if (error) {
-          throw error;
-        }
-
-        console.log('Processed expense:', data);
-        toast({
-          title: "Expense recorded!",
-          description: `Added expense: ${data.expense.amount} for ${data.expense.description}`,
-        });
-      };
-    } catch (error) {
-      console.error('Error processing audio:', error);
-      toast({
-        variant: "destructive",
-        title: "Error processing recording",
-        description: error.message || "There was an error processing your expense. Please try again.",
       });
     }
   };
@@ -147,9 +86,9 @@ const Index = () => {
             isRecording={isRecording} 
             setIsRecording={(recording) => {
               if (recording) {
-                startRecording();
+                handleStartRecording();
               } else {
-                stopRecording();
+                handleStopRecording();
               }
             }} 
           />
