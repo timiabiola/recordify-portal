@@ -11,7 +11,6 @@ const Auth = () => {
   const navigate = useNavigate();
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [isCheckingSession, setIsCheckingSession] = useState(true);
 
   useEffect(() => {
     let mounted = true;
@@ -21,30 +20,32 @@ const Auth = () => {
         console.log('Auth page: Starting session check');
         
         if (!mounted) {
-          console.log('Component unmounted, aborting session check');
+          console.log('Auth: Component unmounted, aborting session check');
           return;
         }
 
-        // In preview mode, always start fresh
+        // Handle preview mode
         if (isPreviewMode()) {
-          console.log('Preview mode detected, clearing session state');
-          await supabase.auth.signOut({ scope: 'global' });
+          console.log('Preview mode detected on Auth page');
+          // Clear any existing session
+          await supabase.auth.signOut();
           localStorage.clear();
           if (!mounted) return;
           setIsLoading(false);
-          setIsCheckingSession(false);
           return;
         }
 
         const { data: { session }, error } = await supabase.auth.getSession();
         
-        if (!mounted) return;
+        if (!mounted) {
+          console.log('Auth: Component unmounted after session check');
+          return;
+        }
 
         if (error) {
           console.error('Session check error:', error);
           setErrorMessage(error.message);
           setIsLoading(false);
-          setIsCheckingSession(false);
           return;
         }
 
@@ -52,17 +53,14 @@ const Auth = () => {
           console.log('Active session found, redirecting to home');
           navigate('/');
         } else {
-          console.log('No active session found');
+          console.log('No active session found, showing auth form');
           setIsLoading(false);
         }
-        
-        setIsCheckingSession(false);
       } catch (error) {
         console.error('Unexpected error during session check:', error);
         if (!mounted) return;
         setErrorMessage('An unexpected error occurred');
         setIsLoading(false);
-        setIsCheckingSession(false);
       }
     };
 
@@ -74,7 +72,7 @@ const Auth = () => {
       console.log('Auth state changed:', event, 'Session:', session ? 'exists' : 'null');
       
       if (!mounted) {
-        console.log('Component unmounted, ignoring auth state change');
+        console.log('Auth: Component unmounted, ignoring auth state change');
         return;
       }
 
@@ -85,30 +83,18 @@ const Auth = () => {
       }
 
       if (event === 'SIGNED_OUT') {
-        console.log('Sign out detected');
+        console.log('Sign out detected on Auth page');
         setErrorMessage('');
         setIsLoading(false);
-        
-        if (isPreviewMode()) {
-          console.log('Preview mode: reloading page');
-          window.location.href = '/auth';
-          return;
-        }
       }
     });
 
-    // Cleanup function
     return () => {
       console.log('Auth page: Cleaning up');
       mounted = false;
       subscription.unsubscribe();
     };
   }, [navigate]);
-
-  // Show loading spinner only during initial session check
-  if (isCheckingSession) {
-    return <LoadingSpinner />;
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">

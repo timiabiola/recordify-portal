@@ -30,8 +30,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
         // Handle preview mode
         if (isPreviewMode()) {
-          console.log('Preview mode: clearing session state');
-          await supabase.auth.signOut({ scope: 'global' });
+          console.log('Preview mode detected in ProtectedRoute');
+          await supabase.auth.signOut();
           localStorage.clear();
           if (!mounted) return;
           setIsAuthenticated(false);
@@ -76,15 +76,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       if (event === 'SIGNED_OUT') {
         console.log('User signed out');
         setIsAuthenticated(false);
-        
-        if (isPreviewMode()) {
-          console.log('Preview mode: reloading page');
-          window.location.href = '/auth';
-          return;
-        }
+      } else {
+        setIsAuthenticated(!!session);
       }
-
-      setIsAuthenticated(!!session);
     });
 
     return () => {
