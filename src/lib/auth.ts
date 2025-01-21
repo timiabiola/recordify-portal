@@ -23,7 +23,7 @@ export const getAuthSession = async () => {
 
 export const signOut = async () => {
   try {
-    // First check if we have a session
+    // Get current session state
     const { data: { session } } = await supabase.auth.getSession();
     
     if (!session) {
@@ -32,23 +32,21 @@ export const signOut = async () => {
       return;
     }
 
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error('Sign out error:', error);
-      // If we get a 403/session not found, we're already signed out
-      if (error.status === 403 && error.message.includes('session_not_found')) {
-        console.log('Session already expired, redirecting to auth page');
-        window.location.href = '/auth';
-        return;
-      }
-      throw error;
-    }
-    
+    // Attempt to sign out
+    await supabase.auth.signOut({ scope: 'local' });
     console.log('Sign out successful');
     toast.success('Signed out successfully');
     window.location.href = '/auth';
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error during sign out:', error);
+    
+    // If session not found, just redirect to auth
+    if (error.message?.includes('session_not_found') || error.status === 403) {
+      console.log('Session expired or not found, redirecting to auth page');
+      window.location.href = '/auth';
+      return;
+    }
+    
     toast.error('Error signing out');
     // For any other errors, still redirect to auth page to ensure user can sign in again
     window.location.href = '/auth';
