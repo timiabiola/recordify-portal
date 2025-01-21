@@ -4,7 +4,6 @@ import { supabase } from '@/integrations/supabase/client';
 import LoadingSpinner from '@/components/auth/LoadingSpinner';
 import ErrorAlert from '@/components/auth/ErrorAlert';
 import AuthForm from '@/components/auth/AuthForm';
-import { isPreviewMode } from '@/lib/auth';
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -14,13 +13,6 @@ const Auth = () => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // In preview mode, always show auth form
-        if (isPreviewMode()) {
-          console.log('Preview mode: showing auth form');
-          setIsLoading(false);
-          return;
-        }
-
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
           console.log('Active session found, redirecting to home');
@@ -35,14 +27,6 @@ const Auth = () => {
     };
 
     checkAuth();
-  }, [navigate]);
-
-  // Only set up auth state change listener if not in preview mode
-  useEffect(() => {
-    if (isPreviewMode()) {
-      console.log('Preview mode: skipping auth state listener');
-      return;
-    }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('Auth state changed:', event, session);

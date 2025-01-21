@@ -5,7 +5,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { isPreviewMode } from "@/lib/auth";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
@@ -18,13 +17,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        // In preview mode, always require authentication
-        if (isPreviewMode()) {
-          console.log('Preview mode: requiring authentication');
-          setIsAuthenticated(false);
-          return;
-        }
-
         const { data: { session } } = await supabase.auth.getSession();
         console.log('Session check:', session ? 'authenticated' : 'not authenticated');
         setIsAuthenticated(!!session);
@@ -36,17 +28,14 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
     checkSession();
 
-    // Only set up auth state change listener if not in preview mode
-    if (!isPreviewMode()) {
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-        console.log('Auth state changed:', event, 'Session:', session ? 'exists' : 'null');
-        setIsAuthenticated(!!session);
-      });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state changed:', event, 'Session:', session ? 'exists' : 'null');
+      setIsAuthenticated(!!session);
+    });
 
-      return () => {
-        subscription.unsubscribe();
-      };
-    }
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   if (isAuthenticated === null) {
