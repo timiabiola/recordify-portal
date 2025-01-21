@@ -70,6 +70,7 @@ serve(async (req) => {
     if (!validateAudioFormat(`file.${format}`)) {
       return new Response(
         JSON.stringify({
+          success: false,
           error: 'Invalid audio format. Please ensure you are using a supported format (webm, mp3, wav).'
         }),
         { 
