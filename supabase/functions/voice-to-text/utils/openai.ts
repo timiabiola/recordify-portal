@@ -43,7 +43,7 @@ export async function extractExpenseDetails(text: string) {
       messages: [
         {
           role: "system",
-          content: `You are a helpful assistant that extracts expense information from text. 
+          content: `You are a helpful assistant that extracts expense information from text.
           Extract the amount and description, and categorize the expense into one of these categories: 
           Food, Transportation, Entertainment, Shopping, Bills, Other.
           
