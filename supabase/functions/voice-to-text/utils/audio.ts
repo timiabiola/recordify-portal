@@ -1,12 +1,27 @@
+const SUPPORTED_FORMATS = ['flac', 'm4a', 'mp3', 'mp4', 'mpeg', 'mpga', 'oga', 'ogg', 'wav', 'webm'];
+
+export function validateAudioFormat(mimeType: string): boolean {
+  const format = mimeType.split('/')[1];
+  console.log('Validating audio format:', format);
+  return SUPPORTED_FORMATS.includes(format);
+}
+
 export function processBase64Chunks(base64String: string, chunkSize = 32768) {
   try {
     console.log('Processing base64 string of length:', base64String.length);
     
     // Remove the data URL prefix if present
     let cleanBase64 = base64String;
-    if (base64String.includes('base64,')) {
-      cleanBase64 = base64String.split('base64,')[1];
-      console.log('Removed data URL prefix');
+    const matches = base64String.match(/^data:(.+);base64,(.+)$/);
+    
+    if (matches) {
+      const mimeType = matches[1];
+      cleanBase64 = matches[2];
+      console.log('Extracted MIME type:', mimeType);
+      
+      if (!validateAudioFormat(mimeType)) {
+        throw new Error(`Unsupported audio format. Supported formats are: ${SUPPORTED_FORMATS.join(', ')}`);
+      }
     }
 
     // Remove any whitespace
