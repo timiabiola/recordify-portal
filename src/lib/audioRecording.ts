@@ -44,6 +44,8 @@ export async function startRecording({ isRecording, setIsRecording }: {
             toast.success('Expenses recorded successfully!');
             // Refresh the page to show new expenses
             window.location.reload();
+          } else if (data?.error && data.error.includes('No audio detected')) {
+            toast.error(data.error);
           } else {
             toast.error('Failed to process expenses. Please try again.');
           }

@@ -36,12 +36,35 @@ serve(async (req) => {
     // Parse request body
     const { audio } = await req.json();
     if (!audio) {
-      throw new Error('Audio data is required');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'No audio detected. Please share the expenses you\'d like recorded and the amount!'
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     // Process and validate audio
     console.log('Processing audio data...');
     const { data: binaryAudio, mimeType, format } = processBase64Chunks(audio);
+    
+    // Check for empty audio (silence)
+    if (binaryAudio.length < 1000) { // Threshold for detecting silence
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'No audio detected. Please share the expenses you\'d like recorded and the amount!'
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
     
     // Validate format before creating blob
     if (!validateAudioFormat(`file.${format}`)) {
