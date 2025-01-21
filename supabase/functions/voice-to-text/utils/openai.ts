@@ -74,7 +74,18 @@ export async function extractExpenseDetails(text: string) {
       apiKey: Deno.env.get('OPENAI_API_KEY'),
     });
 
-    const prompt = `Extract expense information from this text. Return a JSON object with amount (number), description (string), and category (string). Categories should be one of: food, entertainment, transport, shopping, utilities, other. Text: "${text}"`;
+    const systemPrompt = `You are a helpful assistant that extracts expense information from text and returns it in pure JSON format. 
+Never include markdown formatting, code blocks, or backticks in your response. 
+Return only valid JSON that can be directly parsed.`;
+
+    const userPrompt = `Extract expense information from this text and return a JSON object with:
+- amount (number)
+- description (string)
+- category (string, one of: food, entertainment, transport, shopping, utilities, other)
+
+Text: "${text}"
+
+Remember to return ONLY the JSON object, no markdown or code blocks.`;
 
     console.log('Sending request to OpenAI with model: gpt-4o-mini');
     
@@ -83,11 +94,11 @@ export async function extractExpenseDetails(text: string) {
       messages: [
         {
           role: "system",
-          content: "You are a helpful assistant that extracts expense information from text and returns it in a consistent format."
+          content: systemPrompt
         },
         {
           role: "user",
-          content: prompt
+          content: userPrompt
         }
       ],
       temperature: 0.1,
