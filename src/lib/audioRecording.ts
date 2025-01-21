@@ -5,6 +5,11 @@ export const startRecording = async (setIsRecording: (isRecording: boolean) => v
   try {
     console.log('Requesting microphone access...');
     
+    // Check if MediaRecorder is available
+    if (!window.MediaRecorder) {
+      throw new Error('MediaRecorder is not supported in this browser');
+    }
+    
     // Specific constraints for better mobile compatibility
     const stream = await navigator.mediaDevices.getUserMedia({ 
       audio: {
@@ -16,7 +21,14 @@ export const startRecording = async (setIsRecording: (isRecording: boolean) => v
       } 
     });
     
-    console.log('Microphone access granted, initializing MediaRecorder...');
+    console.log('Microphone access granted, stream active:', stream.active);
+    console.log('Audio tracks:', stream.getAudioTracks().length);
+    
+    // Verify we have an active audio track
+    const audioTrack = stream.getAudioTracks()[0];
+    if (!audioTrack || !audioTrack.enabled) {
+      throw new Error('No active audio track available');
+    }
     
     // Check for supported MIME types
     const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
@@ -30,16 +42,20 @@ export const startRecording = async (setIsRecording: (isRecording: boolean) => v
       audioBitsPerSecond: 128000
     });
     
-    console.log('MediaRecorder initialized with settings:', {
+    console.log('MediaRecorder initialized:', {
+      state: mediaRecorder.state,
       mimeType: mediaRecorder.mimeType,
-      state: mediaRecorder.state
+      audioBitsPerSecond: mediaRecorder.audioBitsPerSecond
     });
     
     const audioChunks: Blob[] = [];
 
     mediaRecorder.ondataavailable = (event) => {
       if (event.data.size > 0) {
-        console.log('Received audio chunk of size:', event.data.size);
+        console.log('Received audio chunk:', {
+          size: event.data.size,
+          type: event.data.type
+        });
         audioChunks.push(event.data);
       }
     };
@@ -49,13 +65,11 @@ export const startRecording = async (setIsRecording: (isRecording: boolean) => v
       toast.error('Recording error occurred. Please try again.');
       setIsRecording(false);
       
-      // Clean up the stream
       stream.getTracks().forEach(track => track.stop());
     };
 
     mediaRecorder.onstop = async () => {
       console.log('Recording stopped, processing audio chunks...');
-      console.log('Total chunks collected:', audioChunks.length);
       
       try {
         if (audioChunks.length === 0) {
@@ -68,13 +82,16 @@ export const startRecording = async (setIsRecording: (isRecording: boolean) => v
           type: audioBlob.type
         });
         
-        // Stop all tracks to release the microphone
-        stream.getTracks().forEach(track => track.stop());
-        
         await submitExpenseAudio(audioBlob);
+        
+        // Clear the chunks array
+        audioChunks.length = 0;
       } catch (error) {
         console.error('Error processing audio:', error);
         toast.error('Failed to process audio. Please try again.');
+      } finally {
+        // Always clean up the stream
+        stream.getTracks().forEach(track => track.stop());
       }
     };
 
@@ -82,11 +99,11 @@ export const startRecording = async (setIsRecording: (isRecording: boolean) => v
     mediaRecorder.start(100);
     console.log('Started recording with state:', mediaRecorder.state);
     setIsRecording(true);
+    
     return mediaRecorder;
   } catch (error) {
     console.error('Error starting recording:', error);
     
-    // More specific error handling for mobile browsers
     if (error instanceof DOMException) {
       switch (error.name) {
         case 'NotAllowedError':
@@ -105,7 +122,7 @@ export const startRecording = async (setIsRecording: (isRecording: boolean) => v
           toast.error('Recording was aborted. Please try again.');
           break;
         default:
-          toast.error('Failed to start recording. Please try again.');
+          toast.error(`Failed to start recording: ${error.message}`);
       }
     } else {
       toast.error('Failed to start recording. Please try again.');

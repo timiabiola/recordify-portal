@@ -17,15 +17,20 @@ export const VoiceButton: React.FC<VoiceButtonProps> = ({ isRecording, setIsReco
         console.log('Starting recording...');
         // Stop any existing recording first
         if (mediaRecorderRef.current) {
-          mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+          console.log('Cleaning up existing MediaRecorder...');
+          mediaRecorderRef.current.stream.getTracks().forEach(track => {
+            console.log('Stopping track:', track.kind);
+            track.stop();
+          });
         }
         
+        console.log('Initializing new MediaRecorder...');
         mediaRecorderRef.current = await startRecording(setIsRecording);
+        console.log('MediaRecorder state after initialization:', mediaRecorderRef.current.state);
       } else {
         console.log('Stopping recording...');
-        if (mediaRecorderRef.current) {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
           mediaRecorderRef.current.stop();
-          // Clean up the media recorder
           mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
           mediaRecorderRef.current = null;
           setIsRecording(false);
@@ -35,21 +40,25 @@ export const VoiceButton: React.FC<VoiceButtonProps> = ({ isRecording, setIsReco
       console.error('Recording error:', error);
       setIsRecording(false);
       
-      // Show user-friendly error messages
       if (error instanceof DOMException) {
-        if (error.name === 'NotAllowedError') {
-          toast.error('Please allow microphone access to record expenses');
-        } else if (error.name === 'NotFoundError') {
-          toast.error('No microphone found. Please check your device settings');
-        } else if (error.name === 'NotReadableError') {
-          toast.error('Could not access your microphone. Please check your device settings');
-        } else if (error.name === 'SecurityError') {
-          toast.error('Recording is only allowed on secure (HTTPS) connections');
-        } else {
-          toast.error('Failed to start recording. Please try again');
+        switch (error.name) {
+          case 'NotAllowedError':
+            toast.error('Please allow microphone access to record expenses');
+            break;
+          case 'NotFoundError':
+            toast.error('No microphone found. Please check your device settings');
+            break;
+          case 'NotReadableError':
+            toast.error('Could not access your microphone. Please check if another app is using it');
+            break;
+          case 'SecurityError':
+            toast.error('Recording is only allowed on secure (HTTPS) connections');
+            break;
+          default:
+            toast.error(`Failed to start recording: ${error.message}`);
         }
       } else {
-        toast.error('An unexpected error occurred. Please try again');
+        toast.error('Failed to start recording. Please try again');
       }
     }
   };
