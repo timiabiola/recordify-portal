@@ -20,7 +20,7 @@ export const VoiceButton: React.FC<VoiceButtonProps> = ({ isRecording, setIsReco
 
       {/* Pulsing background */}
       <div className={`absolute inset-0 rounded-full bg-primary opacity-20 transition-transform duration-1000 ${
-        isRecording ? 'scale-[2] animate-pulse' : 'scale-100'
+        isRecording ? 'scale-[1.3] animate-pulse' : 'scale-100'
       }`}></div>
       
       {/* Main button */}
@@ -28,7 +28,7 @@ export const VoiceButton: React.FC<VoiceButtonProps> = ({ isRecording, setIsReco
         onClick={() => setIsRecording(!isRecording)}
         className={`relative z-10 rounded-full p-10 shadow-lg transition-all duration-300 ${
           isRecording 
-            ? 'bg-destructive scale-110 hover:bg-destructive/90' 
+            ? 'bg-destructive scale-105 hover:bg-destructive/90' 
             : 'bg-primary hover:bg-primary/90'
         }`}
         aria-label={isRecording ? "Stop recording" : "Start recording"}
