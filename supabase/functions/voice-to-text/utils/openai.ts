@@ -6,6 +6,8 @@ export async function transcribeAudio(audioBlob: Blob): Promise<string> {
     const formData = new FormData();
     formData.append('file', audioBlob, 'audio.wav');
     formData.append('model', 'whisper-1');
+    formData.append('language', 'en'); // Force English to improve accuracy
+    formData.append('prompt', 'The audio contains an expense amount and category, like "$175 on groceries" or "$50 for gas".'); // Context prompt
     
     const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
@@ -43,23 +45,24 @@ export async function extractExpenseDetails(text: string) {
       messages: [
         {
           role: "system",
-          content: `You are a JSON-only response system. Return a valid JSON array containing exactly one expense object.
-Do not include any explanatory text, markdown formatting, or code blocks.
-The expense object must have these exact fields:
+          content: `You are a literal expense parser. Extract EXACTLY what was spoken:
+1. Use the EXACT amount mentioned
+2. Use the EXACT description spoken
+3. Map to the closest category
+
+Return a JSON array with exactly one expense object containing:
 {
-  "amount": number,
-  "description": string,
-  "category": string (one of: food, transportation, entertainment, shopping, bills, other)
-}
-Example valid response:
-[{"amount":25.50,"description":"lunch at cafe","category":"food"}]`
+  "amount": exact number mentioned,
+  "description": exact words spoken,
+  "category": one of (food, transportation, entertainment, shopping, bills, other)
+}`
         },
         {
           role: "user",
           content: text
         }
       ],
-      temperature: 0
+      temperature: 0 // Set to 0 for most deterministic, literal response
     });
 
     const response = completion.choices[0]?.message?.content;

@@ -7,29 +7,25 @@ export async function extractExpenseDetails(text: string) {
   try {
     checkRateLimit();
 
-    const systemPrompt = `You are a helpful assistant that extracts expense information from transcribed speech. Your task is to:
-1. Extract the exact numerical amount mentioned
-2. Identify the category of expense
-3. Create a clear description based on the mentioned item or category
-4. Return the data in pure JSON format
+    const systemPrompt = `You are a literal expense parser that extracts EXACTLY what was spoken. Your only task is to:
+1. Extract the EXACT amount mentioned (e.g. if someone says $175, use 175, not a different number)
+2. Use the EXACT description of what was mentioned (e.g. if someone says "groceries", use "groceries", not "food shopping")
+3. Map to the closest category
 
-Important rules:
-- Never modify the amount - use exactly what was spoken
-- Keep descriptions simple and literal
-- Never include markdown or code blocks in response
-- Return only valid JSON`;
+Rules:
+- NEVER modify the spoken amount
+- NEVER modify the spoken description
+- NEVER add extra words or context
+- Return pure JSON only`;
 
-    const userPrompt = `Extract expense information from this transcribed speech and return a JSON object with:
-- amount (number, exactly as spoken)
-- description (string, simple and literal)
-- category (string, one of: food, entertainment, transport, shopping, utilities, other)
+    const userPrompt = `Parse this expense exactly as spoken and return a JSON object with:
+- amount: the EXACT number mentioned (e.g. if they say $175, use 175)
+- description: the EXACT item mentioned (e.g. if they say "groceries", use "groceries")
+- category: map to: food, entertainment, transport, shopping, utilities, other
 
 Text: "${text}"
 
-Remember:
-1. Use the exact amount mentioned
-2. Keep descriptions literal and simple
-3. Return ONLY the JSON object, no markdown or code blocks`;
+Return ONLY the JSON object. No explanation, no markdown.`;
 
     console.log('Sending request to OpenAI with model: gpt-4o-mini');
     
@@ -40,18 +36,18 @@ Remember:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: 'gpt-4o-mini',
         messages: [
           {
-            role: "system",
+            role: 'system',
             content: systemPrompt
           },
           {
-            role: "user",
+            role: 'user',
             content: userPrompt
           }
         ],
-        temperature: 0.1,
+        temperature: 0, // Set to 0 for most deterministic, literal response
       }),
     });
 
@@ -87,7 +83,7 @@ Remember:
     }
 
     const response = data.choices[0].message.content;
-    console.log("OpenAI extracted content:", response);
+    console.log('OpenAI extracted content:', response);
     
     try {
       return parseOpenAIResponse(response);
