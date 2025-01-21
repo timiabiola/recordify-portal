@@ -54,19 +54,17 @@ export async function extractExpenseDetails(text: string) {
             role: 'system',
             content: `You are a helpful assistant that extracts expense information from text.
                      For each expense mentioned, identify:
-                     1. A one-word summary of what was purchased
-                     2. The amount spent
-                     3. The category (must be one of: essentials, leisure, recurring_payments)
+                     1. The amount spent (as a number)
+                     2. A brief description
+                     3. The category (must be one of: food, entertainment, transport, shopping, utilities, other)
                      
-                     Rules for categorization:
-                     - essentials: groceries, utilities, basic needs
-                     - recurring_payments: bills, subscriptions, regular payments
-                     - leisure: entertainment, dining out, non-essential purchases
-                     
-                     Return an array of expenses, each with these exact fields:
+                     Return a JSON array where each expense has these exact fields:
                      - amount (number)
-                     - description (one-word summary)
-                     - category (one of the three categories)
+                     - description (string)
+                     - category (string, matching one of the categories above)
+                     
+                     Example response:
+                     [{"amount": 25.50, "description": "lunch", "category": "food"}]
                      
                      Return ONLY the JSON array, no additional text or formatting.`
           },
@@ -93,12 +91,37 @@ export async function extractExpenseDetails(text: string) {
     }
 
     try {
-      const expenses = JSON.parse(data.choices[0].message.content);
-      console.log('Parsed expenses:', expenses);
-      return expenses;
+      const rawExpenses = JSON.parse(data.choices[0].message.content);
+      console.log('Raw parsed expenses:', rawExpenses);
+
+      if (!Array.isArray(rawExpenses)) {
+        throw new Error('Expected an array of expenses');
+      }
+
+      const validCategories = ['food', 'entertainment', 'transport', 'shopping', 'utilities', 'other'];
+      
+      const validatedExpenses = rawExpenses.map(expense => {
+        if (!expense.amount || typeof expense.amount !== 'number') {
+          throw new Error('Invalid amount in expense');
+        }
+        if (!expense.description || typeof expense.description !== 'string') {
+          throw new Error('Invalid description in expense');
+        }
+        if (!expense.category || !validCategories.includes(expense.category)) {
+          expense.category = 'other';
+        }
+        return {
+          amount: expense.amount,
+          description: expense.description,
+          category: expense.category
+        };
+      });
+
+      console.log('Validated expenses:', validatedExpenses);
+      return validatedExpenses;
     } catch (parseError) {
-      console.error('Failed to parse OpenAI response:', parseError);
-      throw new Error('Failed to parse expense details from OpenAI response');
+      console.error('Failed to parse or validate expenses:', parseError);
+      throw new Error('Failed to parse expense details: ' + parseError.message);
     }
   } catch (error) {
     console.error('Error in extractExpenseDetails:', error);
