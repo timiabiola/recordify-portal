@@ -41,10 +41,6 @@ export async function extractExpenseDetails(text: string) {
   console.log('Extracting expense details from text:', text);
   
   try {
-    const openai = new OpenAI({
-      apiKey: Deno.env.get('OPENAI_API_KEY')
-    });
-
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -70,7 +66,9 @@ export async function extractExpenseDetails(text: string) {
                      Return an array of expenses, each with these exact fields:
                      - amount (number)
                      - description (one-word summary)
-                     - category (one of the three categories)`
+                     - category (one of the three categories)
+                     
+                     Return ONLY the JSON array, no additional text or formatting.`
           },
           {
             role: 'user',
@@ -94,29 +92,14 @@ export async function extractExpenseDetails(text: string) {
       throw new Error('Invalid response format from OpenAI');
     }
 
-    const expenses = JSON.parse(data.choices[0].message.content);
-    console.log('Parsed expenses:', expenses);
-
-    // Ensure we have an array of expenses
-    const expensesArray = Array.isArray(expenses) ? expenses : [expenses];
-
-    // Process each expense
-    return expensesArray.map(expense => {
-      const validCategories = ['essentials', 'leisure', 'recurring_payments'];
-      const category = expense.category?.toLowerCase() || 'essentials';
-      
-      // Ensure description is one word and capitalized
-      const description = expense.description
-        .split(' ')[0] // Take only the first word
-        .charAt(0).toUpperCase() + // Capitalize first letter
-        expense.description.split(' ')[0].slice(1).toLowerCase(); // Rest in lowercase
-
-      return {
-        amount: Number(expense.amount) || 0,
-        category: validCategories.includes(category) ? category : 'essentials',
-        description,
-      };
-    });
+    try {
+      const expenses = JSON.parse(data.choices[0].message.content);
+      console.log('Parsed expenses:', expenses);
+      return expenses;
+    } catch (parseError) {
+      console.error('Failed to parse OpenAI response:', parseError);
+      throw new Error('Failed to parse expense details from OpenAI response');
+    }
   } catch (error) {
     console.error('Error in extractExpenseDetails:', error);
     throw error;
