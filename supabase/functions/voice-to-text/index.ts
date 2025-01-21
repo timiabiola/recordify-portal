@@ -13,6 +13,39 @@ interface ExpenseData {
   category: string;
 }
 
+// Process base64 in chunks to prevent memory issues
+function processBase64Chunks(base64String: string, chunkSize = 32768) {
+  const chunks: Uint8Array[] = [];
+  let position = 0;
+  
+  // Remove data URL prefix if present
+  const cleanBase64 = base64String.split(',')[1] || base64String;
+  
+  while (position < cleanBase64.length) {
+    const chunk = cleanBase64.slice(position, position + chunkSize);
+    const binaryChunk = atob(chunk);
+    const bytes = new Uint8Array(binaryChunk.length);
+    
+    for (let i = 0; i < binaryChunk.length; i++) {
+      bytes[i] = binaryChunk.charCodeAt(i);
+    }
+    
+    chunks.push(bytes);
+    position += chunkSize;
+  }
+
+  const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+  const result = new Uint8Array(totalLength);
+  let offset = 0;
+
+  for (const chunk of chunks) {
+    result.set(chunk, offset);
+    offset += chunk.length;
+  }
+
+  return result;
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -37,18 +70,11 @@ serve(async (req) => {
 
     console.log('Processing audio data...');
 
-    // Extract the base64 data (remove data URL prefix if present)
-    const base64Data = audio.split(',')[1] || audio;
+    // Process audio data in chunks
+    const audioBytes = processBase64Chunks(audio);
     
-    // Convert base64 to binary
-    const binaryStr = atob(base64Data);
-    const bytes = new Uint8Array(binaryStr.length);
-    for (let i = 0; i < binaryStr.length; i++) {
-      bytes[i] = binaryStr.charCodeAt(i);
-    }
-
     // Create blob and form data
-    const audioBlob = new Blob([bytes], { type: 'audio/webm' });
+    const audioBlob = new Blob([audioBytes], { type: 'audio/webm' });
     const formData = new FormData();
     formData.append('file', audioBlob, 'audio.webm');
     formData.append('model', 'whisper-1');
@@ -67,7 +93,7 @@ serve(async (req) => {
 
     // Use GPT to parse the transcription
     const parseResponse = await openai.createChatCompletion({
-      model: "gpt-3.5-turbo",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
