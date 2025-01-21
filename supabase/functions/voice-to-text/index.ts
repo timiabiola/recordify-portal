@@ -51,7 +51,7 @@ serve(async (req) => {
     const { audio } = await req.json();
     if (!audio) {
       console.log('No audio data received');
-      throw new Error('No audio detected. Please share the expenses you\'d like recorded and the amount!');
+      throw new Error('No audio detected. Please try recording again.');
     }
 
     // Process and validate audio
@@ -61,7 +61,7 @@ serve(async (req) => {
     // Check for empty audio (silence)
     if (binaryAudio.length < 1000) {
       console.log('Audio data too short - likely silence');
-      throw new Error('No audio detected. Please share the expenses you\'d like recorded and the amount!');
+      throw new Error('No audio detected. Please try recording again.');
     }
     
     // Validate format
@@ -72,19 +72,23 @@ serve(async (req) => {
     
     const blob = new Blob([binaryAudio], { type: mimeType });
 
-    // Transcribe audio
+    // Transcribe audio with context prompt
     console.log('Transcribing audio...');
-    const text = await transcribeAudio(blob);
+    const text = await transcribeAudio(blob, 'The audio contains an expense amount and description, like "$175 on groceries" or "$50 for gas".');
     console.log('Audio transcription:', text);
 
-    // Extract expense details
+    if (!text || text.trim().length === 0) {
+      throw new Error('Could not transcribe audio. Please try recording again.');
+    }
+
+    // Extract expense details with strict parsing
     console.log('Extracting expense details...');
     const expenses = await extractExpenseDetails(text);
     console.log('Extracted expenses:', expenses);
 
     if (!Array.isArray(expenses) || expenses.length === 0) {
       console.error('No valid expenses extracted');
-      throw new Error('Could not understand the expense details. Please try again.');
+      throw new Error('Could not understand the expense details. Please try recording again.');
     }
 
     // Save each expense
@@ -142,6 +146,7 @@ serve(async (req) => {
         savedExpenses.push(savedExpense);
       } catch (error) {
         console.error('Error processing expense:', error);
+        throw error;
       }
     }
 

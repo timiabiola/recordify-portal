@@ -1,13 +1,15 @@
 import OpenAI from 'https://esm.sh/openai@4.20.1'
 
-export async function transcribeAudio(audioBlob: Blob): Promise<string> {
+export async function transcribeAudio(audioBlob: Blob, prompt?: string): Promise<string> {
   try {
     console.log('Starting audio transcription...');
     const formData = new FormData();
     formData.append('file', audioBlob, 'audio.wav');
     formData.append('model', 'whisper-1');
     formData.append('language', 'en'); // Force English to improve accuracy
-    formData.append('prompt', 'The audio contains an expense amount and category, like "$175 on groceries" or "$50 for gas".'); // Context prompt
+    if (prompt) {
+      formData.append('prompt', prompt); // Add context prompt
+    }
     
     const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
@@ -45,21 +47,27 @@ export async function extractExpenseDetails(text: string) {
       messages: [
         {
           role: "system",
-          content: `You are a literal expense parser. Extract EXACTLY what was spoken:
-1. Use the EXACT amount mentioned
-2. Use the EXACT description spoken
+          content: `You are a literal expense parser that extracts EXACTLY what was spoken. Your only task is to:
+1. Extract the EXACT amount mentioned (e.g. if someone says $175, use 175, not a different number)
+2. Use the EXACT description of what was mentioned (e.g. if someone says "groceries", use "groceries", not "food shopping")
 3. Map to the closest category
 
-Return a JSON array with exactly one expense object containing:
+Rules:
+- NEVER modify the spoken amount
+- NEVER modify the spoken description
+- NEVER add extra words or context
+- Return pure JSON only`
+        },
+        {
+          role: "user",
+          content: `Parse this expense exactly as spoken and return a JSON array with exactly one expense object containing:
 {
   "amount": exact number mentioned,
   "description": exact words spoken,
   "category": one of (food, transportation, entertainment, shopping, bills, other)
-}`
-        },
-        {
-          role: "user",
-          content: text
+}
+
+Text: "${text}"`
         }
       ],
       temperature: 0 // Set to 0 for most deterministic, literal response
