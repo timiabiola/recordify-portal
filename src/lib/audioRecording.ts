@@ -3,26 +3,34 @@ import { toast } from 'sonner';
 
 export const startRecording = async (setIsRecording: (isRecording: boolean) => void) => {
   try {
+    console.log('Requesting microphone access...');
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    console.log('Microphone access granted');
+    
     const mediaRecorder = new MediaRecorder(stream);
     const audioChunks: Blob[] = [];
 
     mediaRecorder.ondataavailable = (event) => {
+      console.log('Received audio chunk of size:', event.data.size);
       audioChunks.push(event.data);
     };
 
     mediaRecorder.onstop = async () => {
-      console.log('Recording stopped, processing audio...');
+      console.log('Recording stopped, processing audio chunks...');
+      console.log('Total chunks collected:', audioChunks.length);
+      
       try {
         const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        console.log('Created audio blob of size:', audioBlob.size);
         await sendAudioToSupabase(audioBlob);
       } catch (error) {
-        console.error('Error sending audio:', error);
+        console.error('Error processing audio:', error);
         toast.error('Failed to process audio. Please try again.');
       }
     };
 
     mediaRecorder.start();
+    console.log('Started recording');
     setIsRecording(true);
     return mediaRecorder;
   } catch (error) {
@@ -33,18 +41,24 @@ export const startRecording = async (setIsRecording: (isRecording: boolean) => v
 
 const sendAudioToSupabase = async (audioBlob: Blob) => {
   try {
-    console.log('Converting audio to base64...');
+    console.log('Converting audio blob to base64...');
     const base64Audio = await blobToBase64(audioBlob);
+    console.log('Base64 audio length:', base64Audio.length);
     
     // Get the current user
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
+      console.error('No authenticated user found');
       throw new Error('User not authenticated');
     }
+    console.log('User authenticated, ID:', user.id);
 
-    console.log('Sending audio to voice-to-text function...');
+    console.log('Invoking voice-to-text function...');
     const { data, error } = await supabase.functions.invoke('voice-to-text', {
-      body: { audio: base64Audio, userId: user.id }
+      body: { 
+        audio: base64Audio,
+        userId: user.id 
+      }
     });
 
     if (error) {
@@ -52,15 +66,17 @@ const sendAudioToSupabase = async (audioBlob: Blob) => {
       throw error;
     }
 
+    console.log('Received response from voice-to-text:', data);
     if (data?.expense) {
+      console.log('Expense data received:', data.expense);
       toast.success('Expense recorded successfully!');
     } else {
-      console.error('No expense data received:', data);
+      console.error('No expense data in response:', data);
       toast.error('Failed to process expense. Please try again.');
     }
 
   } catch (error) {
-    console.error('Error sending audio to Supabase:', error);
+    console.error('Error in sendAudioToSupabase:', error);
     throw error;
   }
 };
@@ -70,12 +86,16 @@ const blobToBase64 = (blob: Blob): Promise<string> => {
     const reader = new FileReader();
     reader.onloadend = () => {
       if (typeof reader.result === 'string') {
+        console.log('Successfully converted blob to base64');
         resolve(reader.result);
       } else {
         reject(new Error('Failed to convert blob to base64'));
       }
     };
-    reader.onerror = reject;
+    reader.onerror = (error) => {
+      console.error('Error reading blob:', error);
+      reject(error);
+    };
     reader.readAsDataURL(blob);
   });
 };
