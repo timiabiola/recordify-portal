@@ -65,16 +65,15 @@ export async function extractExpenseDetails(text: string) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
             content: `You are a helpful assistant that extracts expense information from text. 
                      Extract the amount, category, and description. 
-                     Respond with a JSON object containing these fields.
-                     If a field is not found, use null.
-                     Categories should be one of: food, transport, shopping, entertainment, bills, other.
-                     Format numbers as decimal strings without currency symbols.`
+                     Categories must be one of: essentials, leisure, recurring_payments.
+                     Format numbers as decimal numbers without currency symbols.
+                     Always return a valid JSON object with these exact fields.`
           },
           {
             role: 'user',
@@ -103,9 +102,17 @@ export async function extractExpenseDetails(text: string) {
     const parsedContent = JSON.parse(data.choices[0].message.content);
     console.log('Parsed expense details:', parsedContent);
 
+    // Validate and normalize the category
+    const validCategories = ['essentials', 'leisure', 'recurring_payments'];
+    const category = parsedContent.category?.toLowerCase() || 'essentials';
+    
+    if (!validCategories.includes(category)) {
+      console.log('Invalid category detected, defaulting to essentials:', category);
+    }
+
     return {
-      amount: parsedContent.amount,
-      category: parsedContent.category?.toLowerCase() || 'other',
+      amount: Number(parsedContent.amount) || 0,
+      category: validCategories.includes(category) ? category : 'essentials',
       description: parsedContent.description || text,
     };
   } catch (error) {
