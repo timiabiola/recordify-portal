@@ -29,31 +29,40 @@ serve(async (req) => {
     const openai = new OpenAIApi(configuration)
 
     // Get request body and validate
-    const { audio, userId } = await req.json()
-    
-    if (!audio) {
+    const requestData = await req.json()
+    console.log('Received request data:', { 
+      hasAudio: !!requestData.audio,
+      hasUserId: !!requestData.userId 
+    });
+
+    if (!requestData.audio) {
       throw new Error('No audio data provided')
     }
 
-    console.log('Processing audio data...');
-
-    // Remove data URL prefix if present and validate base64
-    const base64Data = audio.split(',')[1] || audio;
+    // Remove data URL prefix if present
+    const base64Data = requestData.audio.split(',')[1] || requestData.audio;
     if (!base64Data) {
+      console.error('Invalid audio format received');
       throw new Error('Invalid audio data format');
     }
 
     // Create binary data from base64
-    let binaryData;
+    let audioBuffer: Uint8Array;
     try {
-      binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+      const binaryString = atob(base64Data);
+      audioBuffer = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        audioBuffer[i] = binaryString.charCodeAt(i);
+      }
     } catch (e) {
       console.error('Base64 decoding error:', e);
-      throw new Error('Invalid base64 encoding');
+      throw new Error('Failed to decode audio data');
     }
 
+    console.log('Successfully decoded audio data, size:', audioBuffer.length);
+
     // Create blob and form data
-    const audioBlob = new Blob([binaryData], { type: 'audio/webm' });
+    const audioBlob = new Blob([audioBuffer], { type: 'audio/webm' });
     const formData = new FormData();
     formData.append('file', audioBlob, 'audio.webm');
     formData.append('model', 'whisper-1');
@@ -100,7 +109,7 @@ serve(async (req) => {
     }
 
     // Save to database if userId is provided
-    if (userId) {
+    if (requestData.userId) {
       const supabaseClient = createClient(
         Deno.env.get('SUPABASE_URL') ?? '',
         Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -133,7 +142,7 @@ serve(async (req) => {
       const { error: expenseError } = await supabaseClient
         .from('expenses')
         .insert({
-          user_id: userId,
+          user_id: requestData.userId,
           category_id: expenseData.category,
           description: expenseData.description,
           amount: expenseData.amount,
