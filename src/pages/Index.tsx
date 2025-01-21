@@ -62,26 +62,35 @@ const Index = () => {
 
   const processAudio = async (audioBlob: Blob) => {
     try {
+      // Get the current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
       // Convert blob to base64
       const reader = new FileReader();
       reader.readAsDataURL(audioBlob);
       
       reader.onloadend = async () => {
-        const base64Audio = (reader.result as string).split(',')[1];
+        const base64Audio = reader.result as string;
         
         // Send to our Edge Function
         const { data, error } = await supabase.functions.invoke('voice-to-text', {
-          body: { audio: base64Audio }
+          body: { 
+            audio: base64Audio,
+            userId: user.id
+          }
         });
 
         if (error) {
           throw error;
         }
 
-        console.log('Transcription:', data.text);
+        console.log('Processed expense:', data);
         toast({
-          title: "Recording processed",
-          description: data.text,
+          title: "Expense recorded!",
+          description: `Added expense: ${data.expense.amount} for ${data.expense.description}`,
         });
       };
     } catch (error) {
