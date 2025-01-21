@@ -69,6 +69,7 @@ serve(async (req) => {
     )
 
     if (!transcriptionResponse.data?.text) {
+      console.error('Invalid Whisper API response:', transcriptionResponse)
       throw new Error('Invalid response from Whisper API')
     }
 
@@ -76,8 +77,9 @@ serve(async (req) => {
     console.log('Transcription received:', transcription)
 
     // Use GPT to parse the transcription
+    console.log('Sending to GPT API...')
     const parseResponse = await openai.createChatCompletion({
-      model: "gpt-4o-mini",
+      model: "gpt-4",
       messages: [
         {
           role: "system",
@@ -93,8 +95,11 @@ serve(async (req) => {
       ]
     })
 
+    console.log('GPT API response received:', parseResponse.data)
+
     const parsedText = parseResponse.data?.choices?.[0]?.message?.content
     if (!parsedText) {
+      console.error('Invalid GPT API response:', parseResponse)
       throw new Error('Invalid response from GPT API')
     }
 
@@ -137,6 +142,7 @@ serve(async (req) => {
         .single()
 
       if (createCategoryError) {
+        console.error('Error creating category:', createCategoryError)
         throw new Error('Failed to create category')
       }
       categoryId = newCategory.id
@@ -156,6 +162,7 @@ serve(async (req) => {
       })
 
     if (expenseError) {
+      console.error('Error saving expense:', expenseError)
       throw new Error('Failed to save expense')
     }
     
