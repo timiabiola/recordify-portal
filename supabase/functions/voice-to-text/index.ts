@@ -50,14 +50,18 @@ serve(async (req) => {
 
     // Extract expense details
     console.log('Extracting expense details...');
-    const expenseDetails = await extractExpenseDetails(text);
-    console.log('Extracted expense details:', expenseDetails);
+    const expenses = await extractExpenseDetails(text);
+    console.log('Extracted expenses:', expenses);
 
-    // Save expense
-    const expense = await saveExpense(supabaseAdmin, user.id, expenseDetails, text);
-    console.log('Expense saved successfully:', expense);
+    // Save all expenses
+    const savedExpenses = await Promise.all(
+      expenses.map(expenseDetails => 
+        saveExpense(supabaseAdmin, user.id, expenseDetails, text)
+      )
+    );
+    console.log('Expenses saved successfully:', savedExpenses);
 
-    return createSuccessResponse({ expense });
+    return createSuccessResponse({ expenses: savedExpenses });
 
   } catch (error) {
     console.error('Edge function error:', {

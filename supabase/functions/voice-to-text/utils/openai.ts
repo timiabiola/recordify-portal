@@ -56,11 +56,21 @@ export async function extractExpenseDetails(text: string) {
         messages: [
           {
             role: 'system',
-            content: `You are a helpful assistant that extracts expense information from text. 
-                     Extract the amount, category, and description. 
-                     Categories must be one of: essentials, leisure, recurring_payments.
-                     Format numbers as decimal numbers without currency symbols.
-                     Always return a valid JSON object with these exact fields.`
+            content: `You are a helpful assistant that extracts expense information from text.
+                     For each expense mentioned, identify:
+                     1. A one-word summary of what was purchased
+                     2. The amount spent
+                     3. The category (must be one of: essentials, leisure, recurring_payments)
+                     
+                     Rules for categorization:
+                     - essentials: groceries, utilities, basic needs
+                     - recurring_payments: bills, subscriptions, regular payments
+                     - leisure: entertainment, dining out, non-essential purchases
+                     
+                     Return an array of expenses, each with these exact fields:
+                     - amount (number)
+                     - description (one-word summary)
+                     - category (one of the three categories)`
           },
           {
             role: 'user',
@@ -84,26 +94,29 @@ export async function extractExpenseDetails(text: string) {
       throw new Error('Invalid response format from OpenAI');
     }
 
-    const parsedContent = JSON.parse(data.choices[0].message.content);
-    console.log('Parsed expense details:', parsedContent);
+    const expenses = JSON.parse(data.choices[0].message.content);
+    console.log('Parsed expenses:', expenses);
 
-    // Validate and normalize the category
-    const validCategories = ['essentials', 'leisure', 'recurring_payments'];
-    const category = parsedContent.category?.toLowerCase() || 'essentials';
-    
-    if (!validCategories.includes(category)) {
-      console.log('Invalid category detected, defaulting to essentials:', category);
-    }
+    // Ensure we have an array of expenses
+    const expensesArray = Array.isArray(expenses) ? expenses : [expenses];
 
-    // Capitalize the first letter of the description
-    const description = parsedContent.description || text;
-    const capitalizedDescription = description.charAt(0).toUpperCase() + description.slice(1);
+    // Process each expense
+    return expensesArray.map(expense => {
+      const validCategories = ['essentials', 'leisure', 'recurring_payments'];
+      const category = expense.category?.toLowerCase() || 'essentials';
+      
+      // Ensure description is one word and capitalized
+      const description = expense.description
+        .split(' ')[0] // Take only the first word
+        .charAt(0).toUpperCase() + // Capitalize first letter
+        expense.description.split(' ')[0].slice(1).toLowerCase(); // Rest in lowercase
 
-    return {
-      amount: Number(parsedContent.amount) || 0,
-      category: validCategories.includes(category) ? category : 'essentials',
-      description: capitalizedDescription,
-    };
+      return {
+        amount: Number(expense.amount) || 0,
+        category: validCategories.includes(category) ? category : 'essentials',
+        description,
+      };
+    });
   } catch (error) {
     console.error('Error in extractExpenseDetails:', error);
     throw error;
