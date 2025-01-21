@@ -1,33 +1,6 @@
-import OpenAI from 'https://esm.sh/openai@4.20.1';
-
-// Simple in-memory rate limiting (resets on function cold starts)
-let requestsInLastMinute = 0;
-const MAX_REQUESTS_PER_MINUTE = 50; // Adjust this based on your plan
-const lastRequestTimes: number[] = [];
-
-function checkRateLimit() {
-  const now = Date.now();
-  const oneMinuteAgo = now - 60000;
-  
-  // Remove requests older than 1 minute
-  while (lastRequestTimes.length > 0 && lastRequestTimes[0] < oneMinuteAgo) {
-    lastRequestTimes.shift();
-  }
-  
-  if (lastRequestTimes.length >= MAX_REQUESTS_PER_MINUTE) {
-    throw new Error('Rate limit exceeded. Please try again in a minute.');
-  }
-  
-  lastRequestTimes.push(now);
-}
-
-// New helper function to sanitize OpenAI responses
-function sanitizeJsonResponse(response: string): string {
-  return response
-    .replace(/```json/g, '')  // Remove ```json
-    .replace(/```/g, '')      // Remove remaining backticks
-    .trim();                  // Remove extra whitespace
-}
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { checkRateLimit } from './rateLimiting.ts';
+import { parseOpenAIResponse } from './jsonParser.ts';
 
 export async function transcribeAudio(audioBlob: Blob) {
   console.log('Starting audio transcription...');
@@ -130,22 +103,7 @@ export async function extractExpenseDetails(text: string) {
     const response = completion.choices[0].message.content;
     console.log("OpenAI extracted content:", response);
     
-    try {
-      // Sanitize the response before parsing
-      const sanitizedResponse = sanitizeJsonResponse(response);
-      console.log("Sanitized response:", sanitizedResponse);
-      
-      const parsedResponse = JSON.parse(sanitizedResponse);
-      console.log("Successfully parsed response:", parsedResponse);
-      return parsedResponse;
-    } catch (parseError) {
-      console.error("Error parsing OpenAI response:", {
-        error: parseError,
-        originalResponse: response,
-        sanitizedResponse: sanitizeJsonResponse(response)
-      });
-      throw new Error("Failed to parse expense details from OpenAI response");
-    }
+    return parseOpenAIResponse(response);
   } catch (error) {
     console.error('Error in extractExpenseDetails:', {
       name: error.name,
@@ -153,7 +111,6 @@ export async function extractExpenseDetails(text: string) {
       stack: error.stack
     });
 
-    // Check for specific OpenAI error types
     if (error.message.includes('rate limit')) {
       throw new Error('OpenAI rate limit reached. Please try again later.');
     } else if (error.message.includes('invalid')) {
