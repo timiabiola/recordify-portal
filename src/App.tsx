@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 import { refreshSession } from "./lib/auth";
+import { toast } from "sonner";
 
 const queryClient = new QueryClient();
 
@@ -19,12 +20,30 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const session = await refreshSession();
-        console.log('Session check:', session ? 'authenticated' : 'not authenticated');
-        setIsAuthenticated(!!session);
+        const { data: { session }, error } = await supabase.auth.getSession();
+        console.log('Initial session check:', session ? 'authenticated' : 'not authenticated');
+        
+        if (error) {
+          console.error('Session check error:', error);
+          setIsAuthenticated(false);
+          toast.error("Session error. Please sign in again.");
+          return;
+        }
+
+        if (!session) {
+          console.log('No active session found');
+          setIsAuthenticated(false);
+          return;
+        }
+
+        // If session exists but might be expired, try to refresh it
+        const refreshedSession = await refreshSession();
+        console.log('Session refresh result:', refreshedSession ? 'success' : 'failed');
+        setIsAuthenticated(!!refreshedSession);
       } catch (error) {
         console.error('Session check error:', error);
         setIsAuthenticated(false);
+        toast.error("Authentication error. Please sign in again.");
       } finally {
         setIsLoading(false);
       }
@@ -34,15 +53,19 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, 'Session:', session ? 'exists' : 'null');
-      if (event === 'SIGNED_OUT') {
+      
+      if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+        console.log('User signed out or deleted');
         setIsAuthenticated(false);
         window.location.href = '/auth';
       } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        console.log('User signed in or token refreshed');
         setIsAuthenticated(true);
       }
     });
 
     return () => {
+      console.log('Cleaning up auth subscription');
       subscription.unsubscribe();
     };
   }, []);
@@ -55,7 +78,12 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  return isAuthenticated ? children : <Navigate to="/auth" replace />;
+  if (!isAuthenticated) {
+    console.log('User not authenticated, redirecting to auth page');
+    return <Navigate to="/auth" replace />;
+  }
+
+  return children;
 };
 
 const App = () => (
