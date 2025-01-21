@@ -1,39 +1,4 @@
-import OpenAI from 'https://esm.sh/openai@4.20.1'
-
-export async function transcribeAudio(audioBlob: Blob): Promise<string> {
-  try {
-    console.log('Starting audio transcription...');
-    const formData = new FormData();
-    formData.append('file', audioBlob, 'audio.wav');
-    formData.append('model', 'whisper-1');
-    
-    const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
-      },
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      console.error('Transcription error:', error);
-      throw new Error(error.error?.message || 'Failed to transcribe audio');
-    }
-
-    const result = await response.json();
-    console.log('Transcription result:', result);
-    
-    if (!result.text || typeof result.text !== 'string' || result.text.trim() === '') {
-      throw new Error('Invalid transcription: empty or invalid text');
-    }
-    
-    return result.text;
-  } catch (error) {
-    console.error('Error in transcribeAudio:', error);
-    throw error;
-  }
-}
+import OpenAI from 'https://esm.sh/openai@4.20.1';
 
 export async function extractExpenseDetails(text: string) {
   try {
@@ -53,28 +18,30 @@ export async function extractExpenseDetails(text: string) {
         {
           role: "system",
           content: `You are a helpful assistant that extracts expense information from text.
-You MUST extract these fields and return them in a JSON object:
+Extract ONLY numerical amount, description, and category from the text.
+Return a JSON object with these exact fields:
 {
-  "amount": number (REQUIRED: must be a positive number, remove any currency symbols),
-  "description": string (REQUIRED: must be a clear description of the expense),
-  "category": string (REQUIRED: must be exactly one of: essentials, monthly_recurring, leisure)
+  "amount": number (extract only the numerical value, no currency symbols, must be > 0),
+  "description": string (clear description of what was purchased),
+  "category": string (must be exactly one of: essentials, monthly_recurring, leisure)
 }
 
-Example valid responses:
-For "I spent $50 on groceries":
-{"amount": 50, "description": "groceries", "category": "essentials"}
+Examples:
+"Spent fifty dollars at the grocery store"
+{"amount": 50, "description": "grocery shopping", "category": "essentials"}
 
-For "Netflix subscription for $15.99":
+"My Netflix subscription is 15.99"
 {"amount": 15.99, "description": "Netflix subscription", "category": "monthly_recurring"}
 
-For "Went to the movies for 20 dollars":
+"Bought movie tickets for twenty bucks"
 {"amount": 20, "description": "movie tickets", "category": "leisure"}
 
 Rules:
-1. Amount must be a number without currency symbols
-2. Description must be clear and specific
-3. Category must be exactly one of the three options
-4. Return ONLY the JSON object, no other text`
+1. Convert all word numbers to digits (e.g., "fifty" → 50)
+2. Remove currency symbols and words ($, dollars, bucks)
+3. Description must be specific and clear
+4. Category must be exact match from the list
+5. Return ONLY the JSON object, no other text`
         },
         {
           role: "user",
@@ -90,18 +57,17 @@ Rules:
       throw new Error('Failed to get response from OpenAI');
     }
 
-    console.log('OpenAI raw response:', response);
+    console.log("OpenAI raw response:", response);
     
     try {
       const parsed = JSON.parse(response.trim());
       console.log('Parsed response:', parsed);
-      
-      // Validate the expense object structure
+
       if (!parsed || typeof parsed !== 'object') {
         throw new Error('Invalid response format: not an object');
       }
 
-      // Validate amount - ensure it's a positive number
+      // Convert amount to number and validate
       const amount = Number(parsed.amount);
       if (isNaN(amount) || amount <= 0) {
         console.error('Invalid amount:', parsed.amount);
@@ -121,19 +87,20 @@ Rules:
         throw new Error(`Invalid category: must be one of ${validCategories.join(', ')}`);
       }
 
-      // Clean and normalize the data
       const normalizedExpense = {
         amount: amount,
         description: parsed.description.trim(),
         category: parsed.category
       };
 
-      console.log('Validated and normalized expense:', normalizedExpense);
-      return [normalizedExpense]; // Return as array for compatibility with existing code
+      console.log('Normalized expense:', normalizedExpense);
+      return [normalizedExpense];
     } catch (parseError) {
-      console.error('Error parsing OpenAI response:', parseError);
-      console.error('Raw response:', response);
-      throw new Error(`Failed to parse expense details: ${parseError.message}`);
+      console.error('Error parsing OpenAI response:', {
+        error: parseError,
+        rawResponse: response
+      });
+      throw new Error('Failed to parse expense details: ' + parseError.message);
     }
   } catch (error) {
     console.error('Error in extractExpenseDetails:', {
