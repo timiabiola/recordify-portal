@@ -1,4 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createOpenAIClient, transcribeAudio, parseExpenseWithGPT } from './utils/openai.ts';
+import { createErrorResponse, validateRequestData, processBase64Audio } from './utils/errorHandling.ts';
+import { saveExpenseToDatabase } from './utils/database.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,26 +16,28 @@ serve(async (req) => {
   }
 
   try {
-    // Log the incoming request content type
-    console.log('Content-Type:', req.headers.get('content-type'));
+    // Log request details
+    console.log('Request received:', {
+      method: req.method,
+      contentType: req.headers.get('content-type'),
+      url: req.url
+    });
 
-    // Parse the request body
-    const body = await req.text();
-    console.log('Received body length:', body.length);
-
-    // For debugging, log a sample of the received data
-    console.log('Sample of received data:', body.substring(0, 100));
+    // Parse and validate request body
+    const requestText = await req.text();
+    console.log('Request body length:', requestText.length);
+    console.log('Request body preview:', requestText.substring(0, 200));
 
     let parsedBody;
     try {
-      parsedBody = JSON.parse(body);
-      console.log('Parsed body structure:', JSON.stringify(Object.keys(parsedBody)));
+      parsedBody = JSON.parse(requestText);
+      console.log('Parsed request body keys:', Object.keys(parsedBody));
     } catch (parseError) {
-      console.error('Error parsing JSON:', parseError.message);
+      console.error('JSON parsing error:', parseError.message);
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'Invalid JSON format'
+          error: 'Invalid JSON format: ' + parseError.message
         }),
         {
           headers: corsHeaders,
@@ -43,15 +48,15 @@ serve(async (req) => {
 
     // Validate required fields
     if (!parsedBody.audio || !parsedBody.userId) {
-      console.error('Missing required fields:', JSON.stringify({
-        hasAudio: !!parsedBody.audio,
-        hasUserId: !!parsedBody.userId
-      }));
+      const missingFields = [];
+      if (!parsedBody.audio) missingFields.push('audio');
+      if (!parsedBody.userId) missingFields.push('userId');
       
+      console.error('Missing required fields:', missingFields);
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'Missing required fields: audio and userId are required'
+          error: `Missing required fields: ${missingFields.join(', ')}`
         }),
         {
           headers: corsHeaders,
@@ -60,13 +65,15 @@ serve(async (req) => {
       );
     }
 
-    // Return a test response
+    // For now, return a test response
+    console.log('Returning test response');
     return new Response(
       JSON.stringify({
         success: true,
         expense: {
           amount: 10.00,
-          description: "Test expense"
+          description: "Test expense",
+          category: "food"
         }
       }),
       {
@@ -76,10 +83,10 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error in edge function:', JSON.stringify({
+    console.error('Edge function error:', {
       message: error.message,
       stack: error.stack
-    }));
+    });
     
     return new Response(
       JSON.stringify({
