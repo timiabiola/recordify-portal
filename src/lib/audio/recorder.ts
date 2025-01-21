@@ -9,15 +9,20 @@ export const initializeRecorder = async () => {
     throw new Error('MediaRecorder is not supported in this browser');
   }
 
-  const stream = await navigator.mediaDevices.getUserMedia(AUDIO_CONSTRAINTS);
-  console.log('Microphone access granted, stream active:', stream.active);
-  
-  const audioTrack = stream.getAudioTracks()[0];
-  if (!audioTrack || !audioTrack.enabled) {
-    throw new Error('No active audio track available');
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia(AUDIO_CONSTRAINTS);
+    console.log('Microphone access granted, stream active:', stream.active);
+    
+    const audioTrack = stream.getAudioTracks()[0];
+    if (!audioTrack || !audioTrack.enabled) {
+      throw new Error('No active audio track available');
+    }
+    
+    return stream;
+  } catch (error) {
+    console.error('Error initializing recorder:', error);
+    throw new Error('Could not access microphone. Please ensure microphone permissions are granted.');
   }
-  
-  return stream;
 };
 
 export const createRecorder = (
@@ -27,10 +32,35 @@ export const createRecorder = (
   onError: (event: Event) => void,
   state: AudioRecorderState
 ) => {
-  // Using audio/wav for recording
+  // Check supported MIME types
+  const getMimeType = () => {
+    const types = [
+      'audio/webm',
+      'audio/webm;codecs=opus',
+      'audio/ogg;codecs=opus',
+      'audio/mp4'
+    ];
+    
+    for (const type of types) {
+      if (MediaRecorder.isTypeSupported(type)) {
+        console.log('Using supported MIME type:', type);
+        return type;
+      }
+    }
+    
+    console.warn('No preferred MIME types supported, using default');
+    return '';
+  };
+
   const mediaRecorder = new MediaRecorder(stream, {
-    mimeType: 'audio/wav',
+    mimeType: getMimeType(),
     audioBitsPerSecond: AUDIO_CONSTRAINTS.audio.audioBitsPerSecond,
+  });
+
+  console.log('MediaRecorder created with settings:', {
+    mimeType: mediaRecorder.mimeType,
+    state: mediaRecorder.state,
+    audioBitsPerSecond: AUDIO_CONSTRAINTS.audio.audioBitsPerSecond
   });
 
   mediaRecorder.ondataavailable = onDataAvailable;
