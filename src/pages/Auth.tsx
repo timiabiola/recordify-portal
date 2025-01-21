@@ -4,6 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 import LoadingSpinner from '@/components/auth/LoadingSpinner';
 import ErrorAlert from '@/components/auth/ErrorAlert';
 import AuthForm from '@/components/auth/AuthForm';
+import AuthContainer from '@/components/auth/AuthContainer';
+import AuthHeader from '@/components/auth/AuthHeader';
+import AuthCard from '@/components/auth/AuthCard';
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -47,20 +50,18 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md space-y-4">
-        <div className="text-center space-y-2">
-          <h1 className="text-2xl font-bold">Welcome to Recordify</h1>
-          <p className="text-muted-foreground">Sign in to record your expenses</p>
-        </div>
+    <AuthContainer>
+      <AuthHeader 
+        title="Welcome to Recordify"
+        subtitle="Sign in to record your expenses"
+      />
 
-        {error && <ErrorAlert message={error} />}
+      {error && <ErrorAlert message={error} />}
 
-        <div className="bg-card p-6 rounded-lg shadow-sm">
-          <AuthForm />
-        </div>
-      </div>
-    </div>
+      <AuthCard>
+        <AuthForm />
+      </AuthCard>
+    </AuthContainer>
   );
 };
 
