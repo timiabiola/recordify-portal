@@ -43,33 +43,20 @@ export async function extractExpenseDetails(text: string) {
       messages: [
         {
           role: "system",
-          content: `You are a helpful assistant that categorizes expenses into exactly one of these three categories:
+          content: `You are a helpful assistant that extracts expense information from text. 
+          Return a single expense object with these exact fields:
+          {
+            "amount": number,
+            "description": string,
+            "category": string (must be exactly one of: essentials, monthly_recurring, leisure)
+          }
           
-1. essentials: Items an adult in North America would consider "needs" including:
-   - Bills, mortgage, rent
-   - Groceries
-   - Essential daily living items
-   - Car payments, insurance
-   - Clothing, personal grooming
-   - Healthcare expenses
-
-2. monthly_recurring:
-   - Subscription services (Netflix, Disney+, etc.)
-   - Monthly memberships
-   - Regular recurring payments
-
-3. leisure:
-   - Entertainment (movies, concerts)
-   - Dining out, restaurants
-   - Hobbies and recreation
-   - Non-essential shopping
-
-Return a valid JSON array containing exactly one expense object with these fields:
-{
-  "amount": number,
-  "description": string,
-  "category": string (one of: essentials, monthly_recurring, leisure)
-}`
+          Categorization rules:
+          - essentials: Bills, mortgage, rent, groceries, essential daily items, car payments, insurance, clothing, personal grooming, healthcare
+          - monthly_recurring: Subscription services (Netflix, etc), monthly memberships, regular recurring payments
+          - leisure: Entertainment, dining out, hobbies, non-essential shopping
+          
+          Return ONLY the JSON object, no additional text or formatting.`
         },
         {
           role: "user",
@@ -82,44 +69,37 @@ Return a valid JSON array containing exactly one expense object with these field
     const response = completion.choices[0]?.message?.content;
     if (!response) {
       console.error('No response from OpenAI');
-      return [];
+      throw new Error('Failed to get response from OpenAI');
     }
 
     console.log('OpenAI raw response:', response);
     
     try {
-      const cleanedResponse = response.trim();
-      if (!cleanedResponse.startsWith('[') || !cleanedResponse.endsWith(']')) {
-        console.error('Invalid JSON array format:', cleanedResponse);
-        return [];
+      const parsed = JSON.parse(response.trim());
+      
+      // Validate the expense object
+      if (!parsed || typeof parsed !== 'object') {
+        throw new Error('Invalid response format: not an object');
       }
 
-      const parsed = JSON.parse(cleanedResponse);
-      if (!Array.isArray(parsed)) {
-        console.error('Parsed response is not an array:', parsed);
-        return [];
+      if (typeof parsed.amount !== 'number') {
+        throw new Error('Invalid amount: must be a number');
       }
 
-      const validExpenses = parsed.filter(expense => {
-        const isValid = 
-          typeof expense === 'object' &&
-          expense !== null &&
-          typeof expense.amount === 'number' && 
-          typeof expense.description === 'string' && 
-          typeof expense.category === 'string' &&
-          ['essentials', 'monthly_recurring', 'leisure'].includes(expense.category);
-        
-        if (!isValid) {
-          console.error('Invalid expense format:', expense);
-        }
-        return isValid;
-      });
+      if (typeof parsed.description !== 'string' || !parsed.description) {
+        throw new Error('Invalid description: must be a non-empty string');
+      }
 
-      console.log('Valid expenses:', validExpenses);
-      return validExpenses;
+      if (!['essentials', 'monthly_recurring', 'leisure'].includes(parsed.category)) {
+        throw new Error('Invalid category: must be essentials, monthly_recurring, or leisure');
+      }
+
+      console.log('Validated expense:', parsed);
+      return [parsed]; // Return as array for compatibility with existing code
     } catch (parseError) {
       console.error('Error parsing OpenAI response:', parseError);
-      return [];
+      console.error('Raw response:', response);
+      throw new Error(`Failed to parse expense details: ${parseError.message}`);
     }
   } catch (error) {
     console.error('Error in extractExpenseDetails:', error);
