@@ -43,15 +43,17 @@ serve(async (req) => {
       throw new Error('Invalid audio data format');
     }
 
+    // Create binary data from base64
+    let binaryData;
     try {
-      // Test if the base64 is valid
-      atob(base64Data);
+      binaryData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
     } catch (e) {
+      console.error('Base64 decoding error:', e);
       throw new Error('Invalid base64 encoding');
     }
 
     // Create blob and form data
-    const audioBlob = new Blob([Uint8Array.from(atob(base64Data), c => c.charCodeAt(0))], { type: 'audio/webm' });
+    const audioBlob = new Blob([binaryData], { type: 'audio/webm' });
     const formData = new FormData();
     formData.append('file', audioBlob, 'audio.webm');
     formData.append('model', 'whisper-1');
