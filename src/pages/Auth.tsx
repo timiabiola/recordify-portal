@@ -50,8 +50,8 @@ const Auth = () => {
         console.log('User signed out');
         setErrorMessage("");
         
-        // Clear any local session data
-        await supabase.auth.clearSession();
+        // Sign out using the correct method
+        await supabase.auth.signOut();
         
         // In preview mode, force a full page reload
         if (window.location.hostname.includes('preview')) {
