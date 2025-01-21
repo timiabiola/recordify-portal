@@ -2,12 +2,21 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export const getAuthSession = async () => {
-  const { data: { session } } = await supabase.auth.getSession();
+  console.log('Getting auth session...');
+  const { data: { session }, error } = await supabase.auth.getSession();
+  
+  if (error) {
+    console.error('Error getting session:', error);
+    throw error;
+  }
+  
   if (!session) {
     console.error('No active session found');
     toast.error('Please sign in to record expenses');
     throw new Error('Not authenticated');
   }
+  
+  console.log('Valid session found for user:', session.user.id);
   return session;
 };
 
@@ -27,7 +36,10 @@ export const signOut = async () => {
       });
     }
     
-    console.log('Sign out API call successful');
+    // Clear any stored session data
+    localStorage.removeItem('supabase.auth.token');
+    
+    console.log('Sign out successful');
   } catch (error) {
     console.error('Exception in signOut function:', error);
     toast.error('Error signing out. Please try again.');

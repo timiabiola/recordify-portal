@@ -15,6 +15,14 @@ const Auth = () => {
     const checkUser = async () => {
       try {
         setIsLoading(true);
+        console.log('Checking user session...');
+        
+        // First clear any existing session if we're in preview mode
+        if (window.location.hostname.includes('preview')) {
+          console.log('Preview environment detected, clearing session...');
+          await supabase.auth.signOut({ scope: 'global' });
+        }
+
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
@@ -26,6 +34,8 @@ const Auth = () => {
         if (session) {
           console.log('Valid session found, redirecting to home');
           navigate('/');
+        } else {
+          console.log('No active session found');
         }
       } catch (error) {
         console.error('Unexpected error during session check:', error);
@@ -34,6 +44,7 @@ const Auth = () => {
         setIsLoading(false);
       }
     };
+
     checkUser();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -41,6 +52,8 @@ const Auth = () => {
       
       if (event === 'SIGNED_IN') {
         console.log('User signed in successfully');
+        // Clear any error messages
+        setErrorMessage("");
         navigate('/');
       }
       
@@ -48,18 +61,27 @@ const Auth = () => {
         console.log('User signed out');
         setErrorMessage("");
         
-        // Sign out using the correct method
+        // Clear session data
         await supabase.auth.signOut();
         
         // In preview mode, force a full page reload
         if (window.location.hostname.includes('preview')) {
           console.log('Preview environment detected, forcing full reload');
-          window.location.replace('/auth');
+          window.location.href = '/auth';
           return;
         }
         
         toast.success('Signed out successfully');
         navigate('/auth');
+      }
+
+      // Handle session errors
+      if (event === 'TOKEN_REFRESHED') {
+        console.log('Session token refreshed');
+      }
+
+      if (event === 'USER_UPDATED') {
+        console.log('User data updated');
       }
     });
 
