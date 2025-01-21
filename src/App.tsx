@@ -8,29 +8,38 @@ import { supabase } from "@/integrations/supabase/client";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
+import { refreshSession } from "./lib/auth";
 
 const queryClient = new QueryClient();
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const session = await refreshSession();
         console.log('Session check:', session ? 'authenticated' : 'not authenticated');
         setIsAuthenticated(!!session);
       } catch (error) {
         console.error('Session check error:', error);
         setIsAuthenticated(false);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     checkSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, 'Session:', session ? 'exists' : 'null');
-      setIsAuthenticated(!!session);
+      if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+        setIsAuthenticated(false);
+        window.location.href = '/auth';
+      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        setIsAuthenticated(true);
+      }
     });
 
     return () => {
@@ -38,7 +47,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
-  if (isAuthenticated === null) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
