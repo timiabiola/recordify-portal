@@ -14,13 +14,21 @@ export const getAuthSession = async () => {
 export const signOut = async () => {
   console.log('Starting sign out process...');
   try {
-    const { error } = await supabase.auth.signOut();
+    // First clear any existing session
+    await supabase.auth.setSession(null);
+    console.log('Session cleared');
+    
+    // Then sign out
+    const { error } = await supabase.auth.signOut({
+      scope: 'local'
+    });
+    
     if (error) {
       console.error('Supabase signOut error:', error);
       toast.error('Error signing out. Please try again.');
       throw error;
     }
-    // Don't show success toast here - it will be handled by the auth state change listener
+    
     console.log('Sign out API call successful');
   } catch (error) {
     console.error('Exception in signOut function:', error);

@@ -31,7 +31,15 @@ const Auth = () => {
         console.log('User signed out successfully');
         setErrorMessage("");
         toast.success('Signed out successfully');
-        // Ensure we're on the auth page after sign out
+        
+        // Force a page reload in preview mode to clear any lingering state
+        if (window.location.hostname.includes('preview')) {
+          console.log('Preview environment detected, reloading page');
+          window.location.href = '/auth';
+          return;
+        }
+        
+        // Regular navigation for non-preview environments
         navigate('/auth');
       }
     });
