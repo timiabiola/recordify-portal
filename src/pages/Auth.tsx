@@ -67,7 +67,7 @@ const Auth = () => {
     checkSession();
 
     // Set up auth state change listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, 'Session:', session ? 'exists' : 'null');
       
       if (!mounted) {

@@ -66,7 +66,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
     // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Auth state changed:', event);
+      console.log('Auth state changed:', event, 'Session:', session ? 'exists' : 'null');
       
       if (!mounted) {
         console.log('ProtectedRoute: Component unmounted, ignoring auth state change');
