@@ -26,7 +26,8 @@ serve(async (req) => {
     const requestData = await req.json()
     console.log('Processing request:', {
       hasAudio: !!requestData.audio,
-      userId: requestData.userId
+      userId: requestData.userId,
+      audioLength: requestData.audio?.length
     })
 
     if (!requestData.audio || !requestData.userId) {
@@ -42,11 +43,21 @@ serve(async (req) => {
     // Create binary data from base64
     let audioBuffer: Uint8Array
     try {
-      const binaryString = atob(base64Data)
-      audioBuffer = new Uint8Array(binaryString.length)
-      for (let i = 0; i < binaryString.length; i++) {
-        audioBuffer[i] = binaryString.charCodeAt(i)
+      // Process base64 in chunks to prevent memory issues
+      const chunkSize = 1024;
+      const chunks: number[] = [];
+      let offset = 0;
+      
+      while (offset < base64Data.length) {
+        const chunk = base64Data.slice(offset, offset + chunkSize);
+        const binaryChunk = atob(chunk);
+        for (let i = 0; i < binaryChunk.length; i++) {
+          chunks.push(binaryChunk.charCodeAt(i));
+        }
+        offset += chunkSize;
       }
+      
+      audioBuffer = new Uint8Array(chunks);
       console.log('Audio buffer created successfully, size:', audioBuffer.length)
     } catch (e) {
       console.error('Base64 decoding error:', e)
