@@ -3,9 +3,10 @@ import { VoiceButton } from '@/components/VoiceButton';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { BarChart3, LogOut } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { startRecording } from '@/lib/audioRecording';
+import { signOut } from '@/lib/auth';
+import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
   const [isRecording, setIsRecording] = useState(false);
@@ -50,21 +51,10 @@ const Index = () => {
     }
   };
 
-  const handleSignOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast({
-        variant: "destructive",
-        title: "Error signing out",
-        description: error.message,
-      });
-    }
-  };
-
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4 sm:p-6">
       <div className="fixed top-4 right-4">
-        <Button variant="outline" size="icon" onClick={handleSignOut} className="w-10 h-10">
+        <Button variant="outline" size="icon" onClick={signOut} className="w-10 h-10">
           <LogOut className="h-5 w-5" />
         </Button>
       </div>
