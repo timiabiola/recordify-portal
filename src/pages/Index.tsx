@@ -14,7 +14,6 @@ const Index = () => {
 
   const handleStartRecording = async () => {
     try {
-      // Check authentication first
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         toast({
@@ -66,22 +65,27 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
-      <div className="absolute top-4 right-4">
-        <Button variant="outline" size="icon" onClick={handleSignOut}>
-          <LogOut className="h-4 w-4" />
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4 sm:p-6">
+      <div className="fixed top-4 right-4 flex gap-2">
+        <Link to="/dashboard">
+          <Button variant="outline" size="icon" className="w-10 h-10">
+            <BarChart3 className="h-5 w-5" />
+          </Button>
+        </Link>
+        <Button variant="outline" size="icon" onClick={handleSignOut} className="w-10 h-10">
+          <LogOut className="h-5 w-5" />
         </Button>
       </div>
       
-      <div className="text-center space-y-6 max-w-md w-full">
-        <h1 className="text-4xl font-bold tracking-tight text-foreground">
+      <div className="text-center space-y-4 max-w-md w-full px-4">
+        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
           Record Your Expense
         </h1>
-        <p className="text-lg text-muted-foreground">
+        <p className="text-base sm:text-lg text-muted-foreground">
           Simply tap the button and speak your expense
         </p>
         
-        <div className="py-12">
+        <div className="py-8 sm:py-12">
           <VoiceButton 
             isRecording={isRecording} 
             setIsRecording={(recording) => {
@@ -92,15 +96,6 @@ const Index = () => {
               }
             }} 
           />
-        </div>
-
-        <div className="mt-8">
-          <Link to="/dashboard">
-            <Button variant="outline" className="gap-2">
-              <BarChart3 className="w-4 h-4" />
-              View Dashboard
-            </Button>
-          </Link>
         </div>
       </div>
     </div>

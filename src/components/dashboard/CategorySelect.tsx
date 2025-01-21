@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/select";
 import { CategoryIcon } from "./CategoryIcon";
 import { formatCategoryName } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type Category = {
   id: string;
@@ -24,9 +25,11 @@ export const CategorySelect = ({
   categories,
   onCategoryChange,
 }: CategorySelectProps) => {
+  const isMobile = useIsMobile();
+
   return (
     <Select value={selectedCategory} onValueChange={onCategoryChange}>
-      <SelectTrigger className="w-[180px]">
+      <SelectTrigger className={`${isMobile ? 'w-full' : 'w-[180px]'}`}>
         <SelectValue placeholder="Select category" />
       </SelectTrigger>
       <SelectContent>

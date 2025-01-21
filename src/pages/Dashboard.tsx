@@ -10,12 +10,13 @@ import {
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { CategorySelect } from '@/components/dashboard/CategorySelect';
-import { CategoryIcon } from '@/components/dashboard/CategoryIcon';
 import { ExpensesTable } from '@/components/dashboard/ExpensesTable';
 import { formatCategoryName } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const Dashboard = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const isMobile = useIsMobile();
 
   const { data: categories } = useQuery({
     queryKey: ['categories'],
@@ -66,9 +67,9 @@ const Dashboard = () => {
   const totalAmount = expenses?.reduce((sum, expense) => sum + Number(expense.amount), 0) || 0;
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
+    <div className="min-h-screen bg-background p-4 sm:p-6">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <Link to="/" className="text-muted-foreground hover:text-foreground flex items-center gap-2">
             <ArrowLeft className="w-4 h-4" />
             Back to Record
@@ -83,21 +84,20 @@ const Dashboard = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>
+            <CardTitle className={`flex ${isMobile ? 'flex-col gap-2' : 'items-center justify-between'}`}>
+              <span className="text-xl sm:text-2xl">
                 {selectedCategory === 'all' 
                   ? `Total Expenses: $${totalAmount.toFixed(2)}`
                   : `${formatCategoryName(categories?.find(c => c.id === selectedCategory)?.name || '')} Expenses: $${totalAmount.toFixed(2)}`}
               </span>
               {selectedCategory !== 'all' && categories?.find(c => c.id === selectedCategory) && (
-                <span className="flex items-center gap-2 text-muted-foreground text-sm">
-                  <CategoryIcon categoryName={categories.find(c => c.id === selectedCategory)?.name || ''} />
+                <span className="text-muted-foreground text-sm">
                   {formatCategoryName(categories.find(c => c.id === selectedCategory)?.name || '')}
                 </span>
               )}
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0 sm:p-6">
             <ExpensesTable expenses={expenses} />
           </CardContent>
         </Card>
