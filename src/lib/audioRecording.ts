@@ -14,7 +14,7 @@ export const startRecording = async (setIsRecording: (isRecording: boolean) => v
     console.log('Microphone access granted, initializing MediaRecorder...');
     
     const mediaRecorder = new MediaRecorder(stream, {
-      mimeType: 'audio/webm'
+      mimeType: 'audio/webm;codecs=opus'
     });
     
     console.log('MediaRecorder initialized with MIME type:', mediaRecorder.mimeType);
@@ -31,6 +31,9 @@ export const startRecording = async (setIsRecording: (isRecording: boolean) => v
       console.error('MediaRecorder error:', event);
       toast.error('Recording error occurred. Please try again.');
       setIsRecording(false);
+      
+      // Clean up the stream
+      stream.getTracks().forEach(track => track.stop());
     };
 
     mediaRecorder.onstop = async () => {
@@ -42,7 +45,7 @@ export const startRecording = async (setIsRecording: (isRecording: boolean) => v
           throw new Error('No audio data recorded');
         }
         
-        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm;codecs=opus' });
         console.log('Created audio blob of size:', audioBlob.size);
         console.log('Audio blob MIME type:', audioBlob.type);
         

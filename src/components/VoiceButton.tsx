@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { Mic } from 'lucide-react';
 import { startRecording } from '@/lib/audioRecording';
+import { toast } from 'sonner';
 
 interface VoiceButtonProps {
   isRecording: boolean;
@@ -11,12 +12,38 @@ export const VoiceButton: React.FC<VoiceButtonProps> = ({ isRecording, setIsReco
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 
   const handleClick = async () => {
-    if (!isRecording) {
-      mediaRecorderRef.current = await startRecording(setIsRecording);
-    } else {
-      if (mediaRecorderRef.current) {
-        mediaRecorderRef.current.stop();
-        setIsRecording(false);
+    try {
+      if (!isRecording) {
+        console.log('Starting recording...');
+        mediaRecorderRef.current = await startRecording(setIsRecording);
+      } else {
+        console.log('Stopping recording...');
+        if (mediaRecorderRef.current) {
+          mediaRecorderRef.current.stop();
+          // Clean up the media recorder
+          const tracks = mediaRecorderRef.current.stream.getTracks();
+          tracks.forEach(track => track.stop());
+          mediaRecorderRef.current = null;
+          setIsRecording(false);
+        }
+      }
+    } catch (error) {
+      console.error('Recording error:', error);
+      setIsRecording(false);
+      
+      // Show user-friendly error messages
+      if (error instanceof DOMException) {
+        if (error.name === 'NotAllowedError') {
+          toast.error('Please allow microphone access to record expenses');
+        } else if (error.name === 'NotFoundError') {
+          toast.error('No microphone found. Please check your device settings');
+        } else if (error.name === 'NotReadableError') {
+          toast.error('Could not access your microphone. Please check your device settings');
+        } else {
+          toast.error('Failed to start recording. Please try again');
+        }
+      } else {
+        toast.error('An unexpected error occurred. Please try again');
       }
     }
   };
