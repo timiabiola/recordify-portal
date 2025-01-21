@@ -1,3 +1,17 @@
 project_id = "rzhuympvvaoimidyxqxe"
-[functions.voice-to-text]
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+
+[db]
+port = 54322
+
+[studio]
+enabled = true
+port = 54323
+
+[[functions]]
+name = "voice-to-text"
 verify_jwt = false
