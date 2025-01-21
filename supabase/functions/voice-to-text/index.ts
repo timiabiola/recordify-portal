@@ -13,20 +13,25 @@ serve(async (req) => {
 
   try {
     const openai = createOpenAIClient(Deno.env.get('OPENAI_API_KEY'));
-    const requestData = await validateRequestData(req);
     
-    console.log('Processing request:', {
+    // Log the incoming request
+    console.log('Processing new request...');
+    
+    const requestData = await validateRequestData(req);
+    console.log('Request validation passed:', {
       hasAudio: !!requestData?.audio,
       userId: requestData?.userId,
       audioLength: requestData?.audio?.length
     });
 
-    const audioBuffer = processBase64Audio(requestData.audio);
+    const audioBuffer = await processBase64Audio(requestData.audio);
+    console.log('Audio processing completed, buffer size:', audioBuffer.length);
+
     const transcription = await transcribeAudio(openai, audioBuffer);
-    console.log('Transcription received:', transcription);
+    console.log('Transcription received:', JSON.stringify({ text: transcription }));
 
     const expenseData = await parseExpenseWithGPT(openai, transcription);
-    console.log('Parsed expense data:', expenseData);
+    console.log('Parsed expense data:', JSON.stringify(expenseData));
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -39,15 +44,25 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({
+        success: true,
         text: transcription,
         expense: expenseData
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
       },
     );
   } catch (err) {
-    console.error('Edge function error:', err);
-    return createErrorResponse(err?.message || 'Internal server error');
+    console.error('Edge function error:', JSON.stringify({
+      message: err?.message,
+      stack: err?.stack,
+      name: err?.name
+    }));
+    
+    return createErrorResponse(
+      err?.message || 'Internal server error',
+      err?.status || 500
+    );
   }
 });
