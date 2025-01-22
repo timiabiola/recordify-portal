@@ -63,7 +63,9 @@ export const ExpensesPieChart = ({ expenses, dateRange }: ExpensesPieChartProps)
               />
               <Legend 
                 formatter={(value) => {
-                  return value.charAt(0).toUpperCase() + value.slice(1).replace('_', ' ');
+                  return value.split('_')
+                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(' ');
                 }}
                 wrapperStyle={isMobile ? { fontSize: '12px' } : undefined}
               />
