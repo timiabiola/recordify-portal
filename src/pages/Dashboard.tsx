@@ -78,6 +78,7 @@ const Dashboard = () => {
               selectedCategory={selectedCategory}
               categories={categories}
               onCategoryChange={setSelectedCategory}
+              showAllOption={true}
             />
           </div>
           <ExpensesTable expenses={expenses} />
