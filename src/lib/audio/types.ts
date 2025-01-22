@@ -1,10 +1,9 @@
-export interface AudioRecorderConfig {
-  sampleRate: number;
-  channelCount: number;
-  audioBitsPerSecond: number;
+export interface AudioRecorderHook {
+  startRecording: () => Promise<void>;
+  stopRecording: () => void;
 }
 
-export interface AudioRecorderState {
-  isRecording: boolean;
-  setIsRecording: (isRecording: boolean) => void;
+export interface RecordingHandlers {
+  handleDataAvailable: (chunks: Blob[], event: BlobEvent) => void;
+  handleRecordingStop: (chunks: Blob[], mimeType: string) => void;
 }

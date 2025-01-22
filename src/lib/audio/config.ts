@@ -1,26 +1,18 @@
-export const AUDIO_CONFIG = {
-  MIME_TYPES: [
-    'audio/webm;codecs=opus',
-    'audio/webm',
-    'audio/ogg;codecs=opus',
-    'audio/wav'
-  ],
-  CONSTRAINTS: {
-    audio: {
-      echoCancellation: true,
-      noiseSuppression: true,
-      autoGainControl: true
-    }
-  }
-} as const;
+export const AUDIO_CONSTRAINTS = {
+  echoCancellation: true,
+  noiseSuppression: true,
+  autoGainControl: true,
+  sampleRate: { ideal: 16000 },
+  channelCount: { ideal: 1 }
+};
 
-export const getSupportedMimeType = () => {
-  for (const mimeType of AUDIO_CONFIG.MIME_TYPES) {
-    if (MediaRecorder.isTypeSupported(mimeType)) {
-      console.log('Using supported MIME type:', mimeType);
-      return mimeType;
-    }
-  }
-  console.warn('No preferred MIME types supported, using default');
-  return '';
+export const SUPPORTED_MIME_TYPES = [
+  'audio/webm;codecs=opus',
+  'audio/webm',
+  'audio/ogg;codecs=opus',
+  'audio/mp4'
+];
+
+export const RECORDER_OPTIONS = {
+  audioBitsPerSecond: 128000
 };
