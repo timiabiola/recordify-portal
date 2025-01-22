@@ -52,7 +52,7 @@ export async function extractExpenseDetails(text: string) {
           role: "system",
           content: `You are a helpful assistant that extracts expense information from text.
 Extract ONLY numerical amount, description, and category from the text.
-Return a JSON object with these exact fields:
+Return a JSON array with these exact fields:
 {
   "amount": number (extract only the numerical value, no currency symbols, must be > 0),
   "description": string (clear description of what was purchased),
@@ -61,20 +61,21 @@ Return a JSON object with these exact fields:
 
 Examples:
 "Spent fifty dollars at the grocery store"
-{"amount": 50, "description": "grocery shopping", "category": "essentials"}
+[{"amount": 50, "description": "grocery shopping", "category": "essentials"}]
 
 "My Netflix subscription is 15.99"
-{"amount": 15.99, "description": "Netflix subscription", "category": "monthly_recurring"}
+[{"amount": 15.99, "description": "Netflix subscription", "category": "monthly_recurring"}]
 
 "Bought movie tickets for twenty bucks"
-{"amount": 20, "description": "movie tickets", "category": "leisure"}
+[{"amount": 20, "description": "movie tickets", "category": "leisure"}]
 
 Rules:
 1. Convert all word numbers to digits (e.g., "fifty" → 50)
 2. Remove currency symbols and words ($, dollars, bucks)
 3. Description must be specific and clear
 4. Category must be exact match from the list
-5. Return ONLY the JSON object, no other text`
+5. Return ONLY the JSON array, no other text
+6. Amount must be a positive number`
         },
         {
           role: "user",
@@ -96,38 +97,42 @@ Rules:
       const parsed = JSON.parse(response.trim());
       console.log('Parsed response:', parsed);
 
-      if (!parsed || typeof parsed !== 'object') {
-        throw new Error('Invalid response format: not an object');
-      }
+      // Ensure we have an array
+      const expensesArray = Array.isArray(parsed) ? parsed : [parsed];
 
-      // Convert amount to number and validate
-      const amount = Number(parsed.amount);
-      if (isNaN(amount) || amount <= 0) {
-        console.error('Invalid amount:', parsed.amount);
-        throw new Error('Invalid amount: must be a positive number');
-      }
+      // Validate each expense
+      expensesArray.forEach(expense => {
+        if (!expense || typeof expense !== 'object') {
+          throw new Error('Invalid response format: not an object');
+        }
 
-      // Validate description
-      if (!parsed.description || typeof parsed.description !== 'string' || parsed.description.trim() === '') {
-        console.error('Invalid description:', parsed.description);
-        throw new Error('Invalid description: must be a non-empty string');
-      }
+        // Convert amount to number and validate
+        const amount = Number(expense.amount);
+        if (isNaN(amount) || amount <= 0) {
+          console.error('Invalid amount:', expense.amount);
+          throw new Error('Invalid amount: must be a positive number');
+        }
 
-      // Validate category
-      const validCategories = ['essentials', 'monthly_recurring', 'leisure'];
-      if (!validCategories.includes(parsed.category)) {
-        console.error('Invalid category:', parsed.category);
-        throw new Error(`Invalid category: must be one of ${validCategories.join(', ')}`);
-      }
+        // Validate description
+        if (!expense.description || typeof expense.description !== 'string' || expense.description.trim() === '') {
+          console.error('Invalid description:', expense.description);
+          throw new Error('Invalid description: must be a non-empty string');
+        }
 
-      const normalizedExpense = {
-        amount: amount,
-        description: parsed.description.trim(),
-        category: parsed.category
-      };
+        // Validate category
+        const validCategories = ['essentials', 'monthly_recurring', 'leisure'];
+        if (!validCategories.includes(expense.category)) {
+          console.error('Invalid category:', expense.category);
+          throw new Error(`Invalid category: must be one of ${validCategories.join(', ')}`);
+        }
 
-      console.log('Normalized expense:', normalizedExpense);
-      return [normalizedExpense];
+        // Normalize the expense
+        expense.amount = amount;
+        expense.description = expense.description.trim();
+      });
+
+      console.log('Validated expenses:', expensesArray);
+      return expensesArray;
     } catch (parseError) {
       console.error('Error parsing OpenAI response:', {
         error: parseError,
