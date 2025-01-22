@@ -1,10 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Toaster } from "sonner";
-import { Auth } from "@/pages/Auth";
-import { Dashboard } from "@/pages/Dashboard";
-import { Index } from "@/pages/Index";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
+import Auth from "@/pages/Auth";
+import Dashboard from "@/pages/Dashboard";
+import Index from "@/pages/Index";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import EditExpense from "@/pages/EditExpense";
 
 const queryClient = new QueryClient();

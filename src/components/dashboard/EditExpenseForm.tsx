@@ -116,8 +116,8 @@ export const EditExpenseForm = ({ expense }: EditExpenseFormProps) => {
               <FormLabel>Category</FormLabel>
               <FormControl>
                 <CategorySelect
-                  value={field.value}
-                  onValueChange={field.onChange}
+                  selectedCategory={field.value}
+                  onCategoryChange={field.onChange}
                 />
               </FormControl>
               <FormMessage />
