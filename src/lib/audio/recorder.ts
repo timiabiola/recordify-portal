@@ -1,5 +1,5 @@
-import { AUDIO_CONSTRAINTS } from './config';
-import { handleAudioError } from './errorHandling';
+import { AUDIO_CONFIG } from './config';
+import { handleRecordingError } from './errorHandling';
 import type { AudioRecorderState } from './types';
 
 export const initializeRecorder = async () => {
@@ -10,7 +10,7 @@ export const initializeRecorder = async () => {
   }
 
   try {
-    const stream = await navigator.mediaDevices.getUserMedia(AUDIO_CONSTRAINTS);
+    const stream = await navigator.mediaDevices.getUserMedia(AUDIO_CONFIG.CONSTRAINTS);
     console.log('Microphone access granted, stream active:', stream.active);
     
     const audioTrack = stream.getAudioTracks()[0];
@@ -53,14 +53,12 @@ export const createRecorder = (
   };
 
   const mediaRecorder = new MediaRecorder(stream, {
-    mimeType: getMimeType(),
-    audioBitsPerSecond: AUDIO_CONSTRAINTS.audio.audioBitsPerSecond,
+    mimeType: getMimeType()
   });
 
   console.log('MediaRecorder created with settings:', {
     mimeType: mediaRecorder.mimeType,
-    state: mediaRecorder.state,
-    audioBitsPerSecond: AUDIO_CONSTRAINTS.audio.audioBitsPerSecond
+    state: mediaRecorder.state
   });
 
   mediaRecorder.ondataavailable = onDataAvailable;

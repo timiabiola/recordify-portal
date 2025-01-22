@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { handleRecordingError, handleEmptyRecordingError, handleShortRecordingError } from './audio/errorHandling';
 
 interface StartRecordingOptions {
   isRecording: boolean;
@@ -19,7 +20,7 @@ export async function startRecording({ isRecording, setIsRecording, options }: S
     });
     
     const mediaRecorder = new MediaRecorder(stream, {
-      mimeType: 'audio/webm',  // Simplified MIME type
+      mimeType: 'audio/webm',  // Consistent MIME type
       ...options
     });
     
@@ -36,17 +37,15 @@ export async function startRecording({ isRecording, setIsRecording, options }: S
     mediaRecorder.onstop = async () => {
       console.log('Recording stopped, processing audio...');
       if (audioChunks.length === 0) {
-        console.error('No audio data recorded');
-        toast.error('No audio was recorded. Please try again.');
+        handleEmptyRecordingError();
         return;
       }
 
-      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });  // Consistent MIME type
+      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
       console.log('Audio blob created:', audioBlob.size, 'bytes');
       
       if (audioBlob.size < 100) {
-        console.error('Audio recording too short');
-        toast.error('Recording was too short. Please try again.');
+        handleShortRecordingError();
         return;
       }
       
@@ -93,8 +92,7 @@ export async function startRecording({ isRecording, setIsRecording, options }: S
     setIsRecording(true);
     return mediaRecorder;
   } catch (error) {
-    console.error('Error starting recording:', error);
-    toast.error('Could not access microphone. Please check permissions.');
+    handleRecordingError(error);
     throw error;
   }
 }
