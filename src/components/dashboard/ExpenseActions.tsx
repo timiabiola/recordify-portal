@@ -39,15 +39,15 @@ export const ExpenseActions = ({ expenseId, onEdit, onDelete }: ExpenseActionsPr
             <Trash2 className="h-4 w-4" />
           </Button>
         </AlertDialogTrigger>
-        <AlertDialogContent>
+        <AlertDialogContent className="w-[95%] max-w-md mx-auto">
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete this expense? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="bg-gray-100 hover:bg-gray-200">
+          <AlertDialogFooter className="flex-col-reverse sm:flex-row gap-2">
+            <AlertDialogCancel className="bg-gray-100 hover:bg-gray-200 mt-0">
               No, Keep It
             </AlertDialogCancel>
             <AlertDialogAction
