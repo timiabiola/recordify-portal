@@ -3,7 +3,7 @@ import { VoiceButton } from '@/components/VoiceButton';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { BarChart3, LogOut, Mic, Settings } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/components/ui/use-toast';
 import { startRecording } from '@/lib/audioRecording';
 import { signOut } from '@/lib/auth';
 import { supabase } from '@/integrations/supabase/client';
