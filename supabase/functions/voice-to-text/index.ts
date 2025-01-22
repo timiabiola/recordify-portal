@@ -102,7 +102,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'Could not understand the expense details. Please try again.'
+          error: 'Could not understand the expense details. Please try again and clearly state the amount and category.'
         }),
         { 
           status: 400,
