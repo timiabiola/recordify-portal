@@ -27,7 +27,7 @@ export async function startRecording({ isRecording, setIsRecording, options }: S
     
     console.log('Audio track settings:', audioTrack.getSettings());
     
-    const supportedMimeType = getSupportedMimeType();
+    const supportedMimeType = 'audio/wav';
     console.log('Selected MIME type:', supportedMimeType);
 
     const mediaRecorder = new MediaRecorder(stream, {
@@ -52,7 +52,7 @@ export async function startRecording({ isRecording, setIsRecording, options }: S
         return;
       }
 
-      const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
+      const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
       console.log('Audio blob created:', audioBlob.size, 'bytes');
       
       if (audioBlob.size < 100) {

@@ -30,13 +30,13 @@ serve(async (req) => {
       bytes[i] = binaryString.charCodeAt(i);
     }
 
-    // Create audio blob with proper MIME type
-    const audioBlob = new Blob([bytes], { type: 'audio/webm;codecs=opus' });
+    // Create audio blob with proper MIME type and format
+    const audioBlob = new Blob([bytes], { type: 'audio/wav' });
     console.log('Created audio blob of size:', audioBlob.size, 'bytes');
 
     // Prepare form data for OpenAI
     const formData = new FormData();
-    formData.append('file', audioBlob, 'audio.webm');
+    formData.append('file', audioBlob, 'audio.wav');
     formData.append('model', 'whisper-1');
     formData.append('language', 'en');
     formData.append('response_format', 'json');
