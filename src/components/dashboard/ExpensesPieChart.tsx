@@ -1,5 +1,6 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Box } from "lucide-react";
 
 type ExpenseData = {
   category: string;
@@ -54,8 +55,12 @@ export const ExpensesPieChart = ({ expenses, dateRange }: ExpensesPieChartProps)
         <CardHeader>
           <CardTitle>Expense Distribution</CardTitle>
         </CardHeader>
-        <CardContent className="h-[300px] flex items-center justify-center text-muted-foreground">
-          No expenses found for this period
+        <CardContent className="h-[300px] flex flex-col items-center justify-center gap-4 text-muted-foreground">
+          <Box className="w-12 h-12 text-muted-foreground/50" />
+          <div className="text-center">
+            <p>No expenses found for this period</p>
+            <p className="text-sm">Add some expenses to see your distribution</p>
+          </div>
         </CardContent>
       </Card>
     );
