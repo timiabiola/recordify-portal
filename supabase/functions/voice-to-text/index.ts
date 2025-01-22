@@ -1,8 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { transcribeAudio, extractExpenseDetails } from './utils/openai.ts';
-import { saveExpense } from './utils/expense.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,70 +8,39 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  console.log('Request received:', {
-    method: req.method,
-    url: req.url,
-    headers: Object.fromEntries(req.headers.entries())
-  });
-
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 204,
-      headers: corsHeaders
-    });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Parse request body
     const { audio } = await req.json();
     if (!audio) {
-      console.log('No audio data received');
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'No audio detected. Please speak clearly and try again!'
-        }),
-        { 
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+      throw new Error('No audio data provided');
     }
 
-    // Get user from auth header
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      console.log('No authorization header found');
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'Authorization required'
-        }),
-        { 
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
+    // Clean and validate the base64 audio data
+    const base64Data = audio.split(',')[1] || audio;
+    console.log('Processing base64 audio data of length:', base64Data.length);
 
-    // Process audio data
-    const base64Data = audio.replace(/^data:audio\/\w+;base64,/, '');
+    // Convert base64 to binary
     const binaryString = atob(base64Data);
     const bytes = new Uint8Array(binaryString.length);
     for (let i = 0; i < binaryString.length; i++) {
       bytes[i] = binaryString.charCodeAt(i);
     }
-    
-    // Create blob and transcribe
-    const blob = new Blob([bytes], { type: 'audio/webm;codecs=opus' });
-    console.log('Processing audio blob:', blob.size, 'bytes');
-    
-    // Send to OpenAI Whisper API
+
+    // Create audio blob with proper MIME type
+    const audioBlob = new Blob([bytes], { type: 'audio/webm;codecs=opus' });
+    console.log('Created audio blob of size:', audioBlob.size, 'bytes');
+
+    // Prepare form data for OpenAI
     const formData = new FormData();
-    formData.append('file', blob, 'audio.webm');
+    formData.append('file', audioBlob, 'audio.webm');
     formData.append('model', 'whisper-1');
     formData.append('language', 'en');
+    formData.append('response_format', 'json');
 
+    console.log('Sending request to OpenAI Whisper API...');
     const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
       headers: {
@@ -99,6 +66,22 @@ serve(async (req) => {
         }),
         { 
           status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Extract user from auth header
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.log('No authorization header found');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Authorization required'
+        }),
+        { 
+          status: 401,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );

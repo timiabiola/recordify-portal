@@ -34,15 +34,77 @@ export const VoiceButton: React.FC<VoiceButtonProps> = ({ isRecording, setIsReco
           });
         }
         
-        mediaRecorderRef.current = await startRecording({ 
-          isRecording, 
-          setIsRecording,
-          options: {
-            mimeType: 'audio/webm'  // Simplified MIME type for better compatibility
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+            sampleRate: 16000 // Optimal for Whisper API
           }
         });
+
+        const options = {
+          mimeType: 'audio/webm;codecs=opus',
+          audioBitsPerSecond: 128000
+        };
+
+        if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+          console.error('Mime type not supported:', options.mimeType);
+          throw new Error('Audio format not supported by your browser');
+        }
+
+        const recorder = new MediaRecorder(stream, options);
+        mediaRecorderRef.current = recorder;
+        
+        const chunks: Blob[] = [];
+        recorder.ondataavailable = (e) => {
+          if (e.data.size > 0) {
+            console.log('Received audio chunk:', e.data.size, 'bytes');
+            chunks.push(e.data);
+          }
+        };
+
+        recorder.onstop = async () => {
+          console.log('Recording stopped, processing chunks...');
+          const audioBlob = new Blob(chunks, { type: options.mimeType });
+          console.log('Final audio blob:', audioBlob.size, 'bytes');
+          
+          if (audioBlob.size < 100) {
+            console.error('Audio recording too short');
+            return;
+          }
+
+          const reader = new FileReader();
+          reader.readAsDataURL(audioBlob);
+          reader.onloadend = async () => {
+            const base64Audio = reader.result as string;
+            console.log('Audio converted to base64, length:', base64Audio.length);
+            
+            try {
+              const { data, error } = await supabase.functions.invoke('voice-to-text', {
+                body: { audio: base64Audio }
+              });
+
+              if (error) throw error;
+              console.log('Voice-to-text response:', data);
+              
+              if (data?.success && data?.expenses) {
+                toast.success('Expenses recorded successfully!');
+                window.location.reload();
+              } else {
+                toast.error(data?.error || 'Failed to process expense');
+              }
+            } catch (error) {
+              console.error('Error processing audio:', error);
+              toast.error('Failed to process audio. Please try again.');
+            }
+          };
+        };
+
+        recorder.start(1000); // Collect data in 1-second chunks
+        console.log('Started recording with options:', options);
+        setIsRecording(true);
       } else {
-        console.log('Stopping recording...');
         if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
           mediaRecorderRef.current.stop();
           mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
@@ -53,6 +115,7 @@ export const VoiceButton: React.FC<VoiceButtonProps> = ({ isRecording, setIsReco
     } catch (error) {
       console.error('Recording error:', error);
       setIsRecording(false);
+      toast.error('Recording failed. Please check your microphone permissions.');
     }
   };
 
