@@ -10,7 +10,7 @@ export async function extractExpenseDetails(text: string) {
 
     console.log('Making OpenAI API request...');
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o",  // Using the correct model name
+      model: "gpt-4o-mini",  // Using the correct model name for faster, cheaper processing
       messages: [
         {
           role: "system",
