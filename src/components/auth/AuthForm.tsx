@@ -3,10 +3,9 @@ import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '@/integrations/supabase/client';
 
 const AuthForm = () => {
-  // Get the current origin, removing any trailing slash
-  const redirectTo = window.location.origin.replace(/\/$/, '');
-  
-  console.log('Auth redirect URL:', redirectTo);
+  // Get the current origin for the preview URL
+  const currentOrigin = window.location.origin;
+  console.log('Auth redirect URL:', currentOrigin);
 
   return (
     <Auth 
@@ -23,7 +22,7 @@ const AuthForm = () => {
         },
       }}
       providers={[]}
-      redirectTo={redirectTo}
+      redirectTo={`${currentOrigin}/auth/callback`}
     />
   );
 };
