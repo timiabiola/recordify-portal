@@ -16,10 +16,11 @@ export const getAudioConstraints = (isMobile: boolean): AudioConstraints => ({
 
 export const getMimeType = (): string => {
   const mimeTypes = [
-    'audio/webm',
     'audio/webm;codecs=opus',
+    'audio/webm',
+    'audio/ogg;codecs=opus',
     'audio/mp4',
-    'audio/ogg;codecs=opus'
+    'audio/wav'
   ];
 
   const supportedMimeType = mimeTypes.find(type => MediaRecorder.isTypeSupported(type));
@@ -28,6 +29,7 @@ export const getMimeType = (): string => {
     throw new Error('No supported audio MIME type found');
   }
 
+  console.log('[Audio Recorder] Selected MIME type:', supportedMimeType);
   return supportedMimeType;
 };
 
@@ -66,7 +68,10 @@ export const createMediaRecorder = (stream: MediaStream, isMobile: boolean): Med
 
     console.log('[Audio Recorder] MediaRecorder created', {
       mimeType,
-      state: recorder.state
+      state: recorder.state,
+      options: {
+        audioBitsPerSecond: isMobile ? 64000 : 128000
+      }
     });
 
     return recorder;

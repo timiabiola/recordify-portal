@@ -13,6 +13,7 @@ export const useAudioRecorder = (
   const recorderState = useRef(createRecorderState());
 
   const cleanupRecorder = useCallback(() => {
+    console.log('[Audio Recorder] Cleaning up recorder state');
     cleanupRecorderState(recorderState.current);
   }, []);
 
@@ -43,8 +44,13 @@ export const useAudioRecorder = (
       );
 
       recorderState.current.mediaRecorder = recorder;
-      recorder.start(1000); // Use consistent chunk size for all platforms
+      recorder.start(500); // Consistent smaller chunk size for better handling
       setIsRecording(true);
+
+      console.log('[Audio Recorder] Recording started successfully', {
+        state: recorder.state,
+        mimeType: recorder.mimeType
+      });
 
     } catch (error) {
       console.error('[Audio Recorder] Start recording error:', error);
@@ -60,6 +66,7 @@ export const useAudioRecorder = (
       
       if (recorderState.current.mediaRecorder?.state === 'recording') {
         recorderState.current.mediaRecorder.stop();
+        console.log('[Audio Recorder] Recorder stopped');
       }
       
       setIsRecording(false);
