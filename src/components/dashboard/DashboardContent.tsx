@@ -3,7 +3,7 @@ import { ExpensesTable } from "./ExpensesTable";
 import { CategorySelect } from "./CategorySelect";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
-import { FileSpreadsheet } from "lucide-react";
+import { Download } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -89,13 +89,13 @@ export const DashboardContent = ({
           <div className="flex flex-col sm:flex-row sm:items-center gap-4">
             <h2 className="text-lg sm:text-xl font-semibold">Recent Expenses</h2>
             <Button
-              variant="outline"
-              size="sm"
+              variant="ghost"
+              size="icon"
               onClick={handleExport}
-              className="w-full sm:w-auto"
+              className="w-9 h-9"
+              title="Export to CSV"
             >
-              <FileSpreadsheet className="mr-2" />
-              Export to CSV
+              <Download className="h-4 w-4" />
             </Button>
           </div>
           <div className="w-full sm:w-auto">
