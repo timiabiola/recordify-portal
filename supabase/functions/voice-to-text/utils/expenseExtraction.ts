@@ -20,19 +20,24 @@ Your task is to identify the amount spent and categorize the expense.
 Rules for extraction:
 1. Amount must be a positive number
 2. Remove any currency symbols or words (e.g., $, dollars, bucks)
-3. Category must be exactly one of: food, entertainment, transport, shopping, utilities, other
+3. Category must be exactly one of: essentials, leisure, recurring_payments
 4. Description should be clear and specific
 5. If you can't confidently extract both amount and category, return null
 
+Categorization rules:
+- essentials: Basic living expenses like housing, utilities, groceries, transportation
+- leisure: Entertainment, dining out, hobbies, non-essential shopping
+- recurring_payments: Subscription services, memberships, regular bills
+
 Example inputs and outputs:
 "I spent fifty dollars at the grocery store"
-{"amount": 50, "description": "grocery shopping", "category": "food"}
+{"amount": 50, "description": "grocery shopping", "category": "essentials"}
 
 "Netflix subscription is 15.99"
-{"amount": 15.99, "description": "Netflix subscription", "category": "entertainment"}
+{"amount": 15.99, "description": "Netflix subscription", "category": "recurring_payments"}
 
 "Went to the movies yesterday twenty dollars"
-{"amount": 20, "description": "movie tickets", "category": "entertainment"}
+{"amount": 20, "description": "movie tickets", "category": "leisure"}
 
 "Had lunch"
 null (missing amount)
@@ -83,7 +88,7 @@ null (missing amount and category)`
         return null;
       }
 
-      const validCategories = ['food', 'entertainment', 'transport', 'shopping', 'utilities', 'other'];
+      const validCategories = ['essentials', 'leisure', 'recurring_payments'];
       if (!validCategories.includes(parsed.category)) {
         console.error('Invalid category:', parsed.category);
         return null;
