@@ -37,12 +37,13 @@ const Dashboard = () => {
         </Link>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
-        <ExpensesPieChart expenses={expenses} />
+      <div className="space-y-6">
         <div className="space-y-4">
           <h2 className="text-xl font-semibold">Recent Expenses</h2>
           <ExpensesTable expenses={expenses} />
         </div>
+        
+        <ExpensesPieChart expenses={expenses} />
       </div>
     </div>
   );
