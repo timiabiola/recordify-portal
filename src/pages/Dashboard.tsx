@@ -2,17 +2,39 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ExpensesTable } from "@/components/dashboard/ExpensesTable";
 import { ExpensesPieChart } from "@/components/dashboard/ExpensesPieChart";
+import { CategorySelect } from "@/components/dashboard/CategorySelect";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Mic, ArrowLeft } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useState } from "react";
 
 const Dashboard = () => {
   const isMobile = useIsMobile();
-  const { data: expenses } = useQuery({
-    queryKey: ["expenses"],
+  const [selectedCategory, setSelectedCategory] = useState("all");
+
+  const { data: categories } = useQuery({
+    queryKey: ["categories"],
     queryFn: async () => {
+      console.log("Fetching categories...");
       const { data, error } = await supabase
+        .from("categories")
+        .select("*");
+
+      if (error) {
+        console.error("Error fetching categories:", error);
+        throw error;
+      }
+      console.log("Categories fetched:", data);
+      return data;
+    },
+  });
+
+  const { data: expenses } = useQuery({
+    queryKey: ["expenses", selectedCategory],
+    queryFn: async () => {
+      console.log("Fetching expenses with category filter:", selectedCategory);
+      let query = supabase
         .from("expenses")
         .select(`
           *,
@@ -22,7 +44,17 @@ const Dashboard = () => {
         `)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (selectedCategory !== "all") {
+        query = query.eq("category_id", selectedCategory);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error("Error fetching expenses:", error);
+        throw error;
+      }
+      console.log("Expenses fetched:", data);
       return data;
     },
   });
@@ -48,7 +80,14 @@ const Dashboard = () => {
 
       <div className="space-y-4 sm:space-y-6">
         <div className="space-y-4">
-          <h2 className="text-lg sm:text-xl font-semibold">Recent Expenses</h2>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <h2 className="text-lg sm:text-xl font-semibold">Recent Expenses</h2>
+            <CategorySelect
+              selectedCategory={selectedCategory}
+              categories={categories}
+              onCategoryChange={setSelectedCategory}
+            />
+          </div>
           <ExpensesTable expenses={expenses} />
         </div>
         
