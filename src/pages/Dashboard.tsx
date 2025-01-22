@@ -108,23 +108,25 @@ const Dashboard = () => {
   });
 
   return (
-    <div className="container py-4 sm:py-6 space-y-4 sm:space-y-6 px-4 sm:px-6">
-      <DashboardHeader
-        onBackClick={handleBackClick}
-        dateRangeType={dateRangeType}
-        selectedMonth={selectedMonth}
-        onDateRangeTypeChange={setDateRangeType}
-        onMonthChange={(value) => setSelectedMonth(new Date(value))}
-        dateRangeLabel={dateRange.label}
-      />
-      <DashboardContent
-        expenses={expenses}
-        categories={categories}
-        selectedCategory={selectedCategory}
-        onCategoryChange={setSelectedCategory}
-        selectedMonth={selectedMonth}
-        dateRange={dateRange}
-      />
+    <div className="min-h-screen bg-gray-50">
+      <div className="container py-4 sm:py-6 space-y-4 sm:space-y-6 px-0 sm:px-6">
+        <DashboardHeader
+          onBackClick={handleBackClick}
+          dateRangeType={dateRangeType}
+          selectedMonth={selectedMonth}
+          onDateRangeTypeChange={setDateRangeType}
+          onMonthChange={(value) => setSelectedMonth(new Date(value))}
+          dateRangeLabel={dateRange.label}
+        />
+        <DashboardContent
+          expenses={expenses}
+          categories={categories}
+          selectedCategory={selectedCategory}
+          onCategoryChange={setSelectedCategory}
+          selectedMonth={selectedMonth}
+          dateRange={dateRange}
+        />
+      </div>
     </div>
   );
 };

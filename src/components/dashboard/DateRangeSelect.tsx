@@ -1,5 +1,6 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, subMonths } from "date-fns";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type DateRangeSelectProps = {
   dateRangeType: 'monthly' | 'ytd' | 'ttm';
@@ -14,22 +15,24 @@ export const DateRangeSelect = ({
   onDateRangeTypeChange,
   onMonthChange,
 }: DateRangeSelectProps) => {
+  const isMobile = useIsMobile();
+  
   // Generate last 12 months for the dropdown
   const last12Months = Array.from({ length: 12 }, (_, i) => {
     const date = subMonths(new Date(), i);
     return {
       value: date.toISOString(),
-      label: format(date, 'MMMM yyyy')
+      label: format(date, isMobile ? 'MMM yyyy' : 'MMMM yyyy')
     };
   });
 
   return (
-    <div className="flex gap-2">
+    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
       <Select
         value={dateRangeType}
         onValueChange={onDateRangeTypeChange}
       >
-        <SelectTrigger className="w-[140px]">
+        <SelectTrigger className="w-full sm:w-[140px]">
           <SelectValue>
             {dateRangeType === 'monthly' ? 'Monthly' : 
              dateRangeType === 'ytd' ? 'Year to Date' : 
@@ -48,9 +51,9 @@ export const DateRangeSelect = ({
           value={selectedMonth.toISOString()}
           onValueChange={onMonthChange}
         >
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue>
-              {format(selectedMonth, 'MMMM yyyy')}
+              {format(selectedMonth, isMobile ? 'MMM yyyy' : 'MMMM yyyy')}
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
