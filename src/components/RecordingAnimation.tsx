@@ -24,8 +24,8 @@ export const RecordingAnimation: React.FC<RecordingAnimationProps> = ({ isRecord
         }`}
         aria-label={isRecording ? "Stop recording" : "Start recording"}
       >
-        <Mic className={`${isMobile ? 'w-10 h-10' : 'w-14 h-14'} text-primary-foreground ${
-          isRecording ? 'animate-pulse' : ''
+        <Mic className={`${isMobile ? 'w-10 h-10' : 'w-14 h-14'} text-primary-foreground transition-transform ${
+          isRecording ? 'animate-pulse scale-110' : 'scale-100'
         }`} />
       </button>
     </div>

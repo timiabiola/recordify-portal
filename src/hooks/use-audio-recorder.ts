@@ -49,7 +49,7 @@ export const useAudioRecorder = (
         mimeType: recorder.mimeType
       });
       
-      return recorder;
+      setIsRecording(true);
     } catch (error) {
       console.error('[AudioRecorder Hook] Error in handleStartRecording:', error);
       setIsRecording(false);

@@ -42,6 +42,11 @@ export const VoiceButton: React.FC<VoiceButtonProps> = ({ isRecording, setIsReco
         onClick={handleClick}
         role="button"
         tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            handleClick();
+          }
+        }}
         aria-label={isRecording ? "Stop recording" : "Start recording"}
       >
         <RecordingAnimation isRecording={isRecording} isMobile={isMobile} />
