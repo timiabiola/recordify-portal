@@ -38,7 +38,7 @@ export const VoiceButton: React.FC<VoiceButtonProps> = ({ isRecording, setIsReco
           isRecording, 
           setIsRecording,
           options: {
-            mimeType: 'audio/webm;codecs=opus'
+            mimeType: 'audio/webm'  // Simplified MIME type for better compatibility
           }
         });
       } else {

@@ -19,7 +19,7 @@ export async function startRecording({ isRecording, setIsRecording, options }: S
     });
     
     const mediaRecorder = new MediaRecorder(stream, {
-      mimeType: 'audio/webm;codecs=opus',
+      mimeType: 'audio/webm',  // Simplified MIME type
       ...options
     });
     
@@ -41,7 +41,7 @@ export async function startRecording({ isRecording, setIsRecording, options }: S
         return;
       }
 
-      const audioBlob = new Blob(audioChunks, { type: 'audio/webm;codecs=opus' });
+      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });  // Consistent MIME type
       console.log('Audio blob created:', audioBlob.size, 'bytes');
       
       if (audioBlob.size < 100) {
