@@ -5,6 +5,7 @@ import {
   XAxis,
   YAxis,
   Tooltip,
+  ComposedChart
 } from 'recharts';
 
 type BaseChartProps = {
@@ -16,11 +17,13 @@ type BaseChartProps = {
 export const BaseChart = ({ children, data, height = 300 }: BaseChartProps) => {
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <CartesianGrid strokeDasharray="3 3" />
-      <XAxis dataKey="name" />
-      <YAxis />
-      <Tooltip />
-      {children}
+      <ComposedChart data={data}>
+        <CartesianGrid strokeDasharray="3 3" />
+        <XAxis dataKey="name" />
+        <YAxis />
+        <Tooltip />
+        {children}
+      </ComposedChart>
     </ResponsiveContainer>
   );
 };
