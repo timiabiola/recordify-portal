@@ -1,35 +1,19 @@
 import { useRef, useCallback } from 'react';
-import { toast } from 'sonner';
-import type { AudioRecorderHook, AudioRecorderState } from '@/lib/audio/types';
+import type { AudioRecorderHook } from '@/lib/audio/types';
 import { getAudioConstraints, initializeMediaStream, createMediaRecorder } from '@/lib/audio/initializeRecorder';
 import { handleRecordingError } from '@/lib/audio/handleErrors';
 import { createRecordingHandlers } from '@/lib/audio/handlers';
+import { createRecorderState, cleanupRecorderState } from '@/lib/audio/recorder-state';
+import { setupRecorderEvents } from '@/lib/audio/recorder-events';
 
 export const useAudioRecorder = (
   isRecording: boolean,
   setIsRecording: (isRecording: boolean) => void
 ): AudioRecorderHook => {
-  const recorderState = useRef<AudioRecorderState>({
-    mediaRecorder: null,
-    chunks: []
-  });
+  const recorderState = useRef(createRecorderState());
 
   const cleanupRecorder = useCallback(() => {
-    if (recorderState.current.mediaRecorder) {
-      const currentRecorder = recorderState.current.mediaRecorder;
-      
-      if (currentRecorder.state !== 'inactive') {
-        currentRecorder.stop();
-      }
-      
-      currentRecorder.stream.getTracks().forEach(track => {
-        track.stop();
-        console.log('[Audio Recorder] Cleaned up track:', track.kind);
-      });
-      
-      recorderState.current.mediaRecorder = null;
-      recorderState.current.chunks = [];
-    }
+    cleanupRecorderState(recorderState.current);
   }, []);
 
   const handleStartRecording = useCallback(async (): Promise<void> => {
@@ -50,33 +34,13 @@ export const useAudioRecorder = (
       const recorder = createMediaRecorder(stream, isMobile);
       const handlers = createRecordingHandlers();
 
-      recorder.ondataavailable = (e) => {
-        console.log('[Audio Recorder] Data available:', {
-          size: e.data.size,
-          type: e.data.type
-        });
-        if (e.data.size > 0) {
-          recorderState.current.chunks.push(e.data);
-        }
-      };
-
-      recorder.onstop = async () => {
-        console.log('[Audio Recorder] Recording stopped, processing chunks:', recorderState.current.chunks.length);
-        if (recorderState.current.chunks.length > 0) {
-          await handlers.handleRecordingStop(recorderState.current.chunks, recorder.mimeType);
-        } else {
-          console.error('[Audio Recorder] No audio data recorded');
-          toast.error('No audio data recorded. Please try again.');
-        }
-        cleanupRecorder();
-      };
-
-      recorder.onerror = (event) => {
-        console.error('[Audio Recorder] Recorder error:', event);
-        cleanupRecorder();
-        setIsRecording(false);
-        toast.error('Recording error occurred. Please try again.');
-      };
+      setupRecorderEvents(
+        recorder,
+        recorderState.current.chunks,
+        handlers.handleRecordingStop,
+        cleanupRecorder,
+        setIsRecording
+      );
 
       recorderState.current.mediaRecorder = recorder;
       recorder.start(1000); // Use consistent chunk size for all platforms
