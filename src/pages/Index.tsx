@@ -2,11 +2,24 @@ import { useState, useRef } from 'react';
 import { VoiceButton } from '@/components/VoiceButton';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { BarChart3, LogOut } from 'lucide-react';
+import { BarChart3, LogOut, Mic, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { startRecording } from '@/lib/audioRecording';
 import { signOut } from '@/lib/auth';
 import { supabase } from '@/integrations/supabase/client';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const Index = () => {
   const [isRecording, setIsRecording] = useState(false);
@@ -53,42 +66,61 @@ const Index = () => {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4 sm:p-6">
-      <div className="fixed top-4 right-4">
-        <Button variant="outline" size="icon" onClick={signOut} className="w-10 h-10">
-          <LogOut className="h-5 w-5" />
-        </Button>
+      {/* Header with Navigation */}
+      <div className="fixed top-4 right-4 flex gap-2">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Link to="/dashboard">
+              <Button variant="outline" size="icon" className="w-10 h-10">
+                <BarChart3 className="h-5 w-5" />
+              </Button>
+            </Link>
+          </TooltipTrigger>
+          <TooltipContent>View Dashboard</TooltipContent>
+        </Tooltip>
+        
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="outline" size="icon" onClick={signOut} className="w-10 h-10">
+              <LogOut className="h-5 w-5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Sign Out</TooltipContent>
+        </Tooltip>
       </div>
       
-      <div className="text-center space-y-4 max-w-md w-full px-4">
-        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
-          Record Your Expense
-        </h1>
-        <p className="text-base sm:text-lg text-muted-foreground">
-          Simply tap the button and speak your expense
-        </p>
+      <Card className="w-full max-w-md mx-auto">
+        <CardHeader>
+          <CardTitle className="text-3xl sm:text-4xl font-bold tracking-tight text-center">
+            Record Expense
+          </CardTitle>
+          <CardDescription className="text-center text-base sm:text-lg">
+            Tap the microphone and speak your expense details
+          </CardDescription>
+        </CardHeader>
         
-        <div className="py-8 sm:py-12">
-          <VoiceButton 
-            isRecording={isRecording} 
-            setIsRecording={(recording) => {
-              if (recording) {
-                handleStartRecording();
-              } else {
-                handleStopRecording();
-              }
-            }} 
-          />
-        </div>
+        <CardContent>
+          <div className="py-8 sm:py-12">
+            <VoiceButton 
+              isRecording={isRecording} 
+              setIsRecording={(recording) => {
+                if (recording) {
+                  handleStartRecording();
+                } else {
+                  handleStopRecording();
+                }
+              }} 
+            />
+          </div>
 
-        <div className="mt-6 sm:mt-8">
-          <Link to="/dashboard" className="inline-block w-full sm:w-auto">
-            <Button variant="outline" className="w-full sm:w-auto gap-2">
-              <BarChart3 className="h-5 w-5" />
-              View Dashboard
-            </Button>
-          </Link>
-        </div>
-      </div>
+          <div className="mt-6 text-center text-sm text-muted-foreground">
+            <p>Try saying something like:</p>
+            <p className="mt-2 font-medium text-foreground">
+              "I spent $25 on lunch at the cafe yesterday"
+            </p>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
