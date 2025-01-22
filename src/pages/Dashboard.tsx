@@ -4,7 +4,7 @@ import { ExpensesTable } from "@/components/dashboard/ExpensesTable";
 import { ExpensesPieChart } from "@/components/dashboard/ExpensesPieChart";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Mic } from "lucide-react";
+import { Mic, ArrowLeft } from "lucide-react";
 
 const Dashboard = () => {
   const { data: expenses } = useQuery({
@@ -28,7 +28,14 @@ const Dashboard = () => {
   return (
     <div className="container py-6 space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <div className="flex items-center gap-4">
+          <Link to="/">
+            <Button variant="ghost" size="icon">
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+          </Link>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        </div>
         <Link to="/">
           <Button className="gap-2">
             <Mic className="w-4 h-4" />
