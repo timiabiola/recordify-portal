@@ -10,7 +10,7 @@ export async function extractExpenseDetails(text: string) {
 
     console.log('Making OpenAI API request...');
     const completion = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
@@ -28,6 +28,7 @@ Rules:
 3. Category must be exactly one of: essentials, leisure, recurring_payments
 4. Description should be clear and concise
 5. Return ONLY the JSON array, no other text
+6. Do not include any explanations or additional text, just the JSON array
 
 Example input: "I spent fifty dollars at the grocery store"
 Example output: [{"amount": 50, "description": "grocery shopping", "category": "essentials"}]
@@ -40,8 +41,7 @@ Example output: [{"amount": 15.99, "description": "Netflix subscription", "categ
           content: text
         }
       ],
-      temperature: 0,
-      response_format: { type: "json_object" } // Force JSON response
+      temperature: 0
     });
 
     const response = completion.choices[0]?.message?.content;
@@ -53,7 +53,9 @@ Example output: [{"amount": 15.99, "description": "Netflix subscription", "categ
     console.log('OpenAI raw response:', response);
     
     try {
-      const parsed = JSON.parse(response.trim());
+      // Clean the response to ensure we only parse the JSON array
+      const cleanedResponse = response.trim().replace(/^```json\n?|\n?```$/g, '');
+      const parsed = JSON.parse(cleanedResponse);
       console.log('Parsed expense details:', parsed);
 
       // Ensure we have an array
