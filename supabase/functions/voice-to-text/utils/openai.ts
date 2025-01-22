@@ -2,6 +2,7 @@ import OpenAI from 'https://esm.sh/openai@4.20.1';
 
 export async function transcribeAudio(audioBlob: Blob): Promise<string> {
   try {
+    console.log('Starting transcription with audio blob size:', audioBlob.size);
     const openai = new OpenAI({
       apiKey: Deno.env.get('OPENAI_API_KEY')
     });
@@ -10,6 +11,8 @@ export async function transcribeAudio(audioBlob: Blob): Promise<string> {
     const formData = new FormData();
     formData.append('file', audioBlob, 'audio.webm');
     formData.append('model', 'whisper-1');
+    formData.append('language', 'en');
+    formData.append('response_format', 'json');
 
     // Make request to OpenAI's transcription API
     const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
@@ -21,11 +24,19 @@ export async function transcribeAudio(audioBlob: Blob): Promise<string> {
     });
 
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${await response.text()}`);
+      const errorText = await response.text();
+      console.error('OpenAI API error response:', errorText);
+      throw new Error(`OpenAI API error: ${errorText}`);
     }
 
     const result = await response.json();
     console.log('Transcription result:', result);
+    
+    if (!result.text || typeof result.text !== 'string') {
+      console.error('Invalid transcription result:', result);
+      throw new Error('Invalid transcription result format');
+    }
+
     return result.text;
   } catch (error) {
     console.error('Error in transcribeAudio:', error);

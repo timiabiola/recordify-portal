@@ -12,7 +12,6 @@ export const VoiceButton: React.FC<VoiceButtonProps> = ({ isRecording, setIsReco
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const isMobile = useIsMobile();
 
-  // Cleanup function for when component unmounts
   useEffect(() => {
     return () => {
       if (mediaRecorderRef.current) {
@@ -35,7 +34,13 @@ export const VoiceButton: React.FC<VoiceButtonProps> = ({ isRecording, setIsReco
           });
         }
         
-        mediaRecorderRef.current = await startRecording({ isRecording, setIsRecording });
+        mediaRecorderRef.current = await startRecording({ 
+          isRecording, 
+          setIsRecording,
+          options: {
+            mimeType: 'audio/webm;codecs=opus'
+          }
+        });
       } else {
         console.log('Stopping recording...');
         if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
@@ -53,7 +58,6 @@ export const VoiceButton: React.FC<VoiceButtonProps> = ({ isRecording, setIsReco
 
   return (
     <div className="relative flex flex-col items-center">
-      {/* Floating helper text - hidden on mobile */}
       {!isMobile && (
         <div className={`absolute -top-12 transition-opacity duration-300 ${
           isRecording ? 'opacity-0' : 'opacity-100'
@@ -64,12 +68,10 @@ export const VoiceButton: React.FC<VoiceButtonProps> = ({ isRecording, setIsReco
         </div>
       )}
 
-      {/* Pulsing background */}
       <div className={`absolute inset-0 rounded-full bg-primary opacity-20 transition-transform duration-1000 ${
         isRecording ? 'scale-[1.3] animate-pulse' : 'scale-100'
       }`}></div>
       
-      {/* Main button - adjusted size for mobile */}
       <button
         onClick={handleClick}
         className={`relative z-10 rounded-full ${
@@ -86,7 +88,6 @@ export const VoiceButton: React.FC<VoiceButtonProps> = ({ isRecording, setIsReco
         }`} />
       </button>
       
-      {/* Status text */}
       <div className="mt-4 md:mt-6 text-center">
         <p className={`${isMobile ? 'text-base' : 'text-lg'} font-medium ${
           isRecording ? 'text-destructive' : 'text-muted-foreground'

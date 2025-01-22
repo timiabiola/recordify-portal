@@ -1,22 +1,54 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-export async function startRecording({ isRecording, setIsRecording }: { 
-  isRecording: boolean; 
-  setIsRecording: (isRecording: boolean) => void 
-}) {
+interface StartRecordingOptions {
+  isRecording: boolean;
+  setIsRecording: (isRecording: boolean) => void;
+  options?: MediaRecorderOptions;
+}
+
+export async function startRecording({ isRecording, setIsRecording, options }: StartRecordingOptions) {
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const mediaRecorder = new MediaRecorder(stream);
+    console.log('Starting recording with options:', options);
+    const stream = await navigator.mediaDevices.getUserMedia({ 
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true
+      }
+    });
+    
+    const mediaRecorder = new MediaRecorder(stream, {
+      mimeType: 'audio/webm;codecs=opus',
+      ...options
+    });
+    
+    console.log('MediaRecorder created with mimeType:', mediaRecorder.mimeType);
     const audioChunks: Blob[] = [];
 
     mediaRecorder.ondataavailable = (event) => {
-      audioChunks.push(event.data);
+      console.log('Data available event:', event.data.size, 'bytes');
+      if (event.data.size > 0) {
+        audioChunks.push(event.data);
+      }
     };
 
     mediaRecorder.onstop = async () => {
       console.log('Recording stopped, processing audio...');
-      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+      if (audioChunks.length === 0) {
+        console.error('No audio data recorded');
+        toast.error('No audio was recorded. Please try again.');
+        return;
+      }
+
+      const audioBlob = new Blob(audioChunks, { type: 'audio/webm;codecs=opus' });
+      console.log('Audio blob created:', audioBlob.size, 'bytes');
+      
+      if (audioBlob.size < 100) {
+        console.error('Audio recording too short');
+        toast.error('Recording was too short. Please try again.');
+        return;
+      }
       
       // Convert blob to base64
       const reader = new FileReader();
@@ -57,6 +89,7 @@ export async function startRecording({ isRecording, setIsRecording }: {
     };
 
     mediaRecorder.start();
+    console.log('MediaRecorder started');
     setIsRecording(true);
     return mediaRecorder;
   } catch (error) {
