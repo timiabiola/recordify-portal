@@ -77,7 +77,6 @@ export const useAudioRecorder = (
       } else {
         toast.error('Failed to start recording. Please check your microphone permissions.');
       }
-      throw error;
     }
   }, [isRecording, setIsRecording]);
 

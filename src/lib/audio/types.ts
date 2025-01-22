@@ -1,6 +1,6 @@
 export interface AudioRecorderHook {
   startRecording: () => Promise<void>;
-  stopRecording: () => void;
+  stopRecording: () => Promise<void>;
 }
 
 export interface RecordingHandlers {
