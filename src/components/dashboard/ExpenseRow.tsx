@@ -1,6 +1,7 @@
 import { TableCell, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
 import { ExpenseActions } from "./ExpenseActions";
+import { CategoryIcon } from "./CategoryIcon";
 
 type ExpenseRowProps = {
   expense: {
@@ -23,19 +24,26 @@ export const ExpenseRow = ({ expense, isMobile, onEdit, onDelete, onRestore }: E
     <TableRow key={expense.id}>
       <TableCell className="font-medium">
         <div className="flex items-center gap-2">
-          <span className="truncate max-w-[200px]">{expense.description}</span>
+          <CategoryIcon categoryName={expense.categories.name} />
+          <span className="truncate max-w-[200px] capitalize text-gray-800">
+            {expense.description}
+          </span>
           {isMobile && (
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs text-[#7E69AB] capitalize">
               {expense.categories.name}
             </span>
           )}
         </div>
       </TableCell>
-      {!isMobile && <TableCell>{expense.categories.name}</TableCell>}
-      <TableCell className="text-right">
+      {!isMobile && (
+        <TableCell className="text-[#7E69AB] capitalize">
+          {expense.categories.name}
+        </TableCell>
+      )}
+      <TableCell className="text-right font-semibold text-[#1A1F2C]">
         ${Number(expense.amount).toFixed(2)}
       </TableCell>
-      <TableCell className="text-right">
+      <TableCell className="text-right text-[#8E9196]">
         {format(new Date(expense.created_at), isMobile ? "MM/dd" : "MM/dd/yyyy")}
       </TableCell>
       <TableCell>

@@ -52,10 +52,16 @@ export const ExpensesTable = ({ expenses, showRestore }: ExpensesTableProps) => 
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>{isMobile ? 'Desc.' : 'Description'}</TableHead>
-            {!isMobile && <TableHead>Category</TableHead>}
-            <TableHead className="text-right">Amount</TableHead>
-            <TableHead className="text-right">{isMobile ? 'Date' : 'Created At'}</TableHead>
+            <TableHead className="text-[#8E9196]">
+              {isMobile ? 'Desc.' : 'Description'}
+            </TableHead>
+            {!isMobile && (
+              <TableHead className="text-[#8E9196]">Category</TableHead>
+            )}
+            <TableHead className="text-right text-[#8E9196]">Amount</TableHead>
+            <TableHead className="text-right text-[#8E9196]">
+              {isMobile ? 'Date' : 'Created At'}
+            </TableHead>
             <TableHead className="w-[100px]"></TableHead>
           </TableRow>
         </TableHeader>
@@ -72,7 +78,10 @@ export const ExpensesTable = ({ expenses, showRestore }: ExpensesTableProps) => 
           ))}
           {(!expenses || expenses.length === 0) && (
             <TableRow>
-              <TableCell colSpan={isMobile ? 4 : 5} className="text-center text-muted-foreground">
+              <TableCell 
+                colSpan={isMobile ? 4 : 5} 
+                className="text-center text-[#8E9196]"
+              >
                 No expenses found
               </TableCell>
             </TableRow>
