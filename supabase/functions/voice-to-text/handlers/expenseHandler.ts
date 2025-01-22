@@ -2,11 +2,12 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { extractExpenseDetails } from "../utils/expenseExtraction.ts";
 
 export async function saveExpense(userId: string, transcriptionText: string) {
-  console.log('Extracting expense details from:', transcriptionText);
+  console.log('Starting expense processing for transcription:', transcriptionText);
   const expenses = await extractExpenseDetails(transcriptionText);
   console.log('Extracted expenses:', expenses);
 
   if (!expenses || expenses.length === 0) {
+    console.error('No valid expenses found in transcription');
     throw new Error('Could not understand the expense details');
   }
 
@@ -19,6 +20,8 @@ export async function saveExpense(userId: string, transcriptionText: string) {
 
   // Save each expense, but check for duplicates first
   for (const expenseDetails of expenses) {
+    console.log('Processing expense:', expenseDetails);
+    
     // Get category id
     const { data: categoryData, error: categoryError } = await supabaseAdmin
       .from('categories')
@@ -31,8 +34,12 @@ export async function saveExpense(userId: string, transcriptionText: string) {
       throw new Error('Invalid expense category');
     }
 
+    console.log('Found category ID:', categoryData.id);
+
     // Check for duplicate entries within a 5-second window
     const fiveSecondsAgo = new Date(Date.now() - 5000).toISOString();
+    console.log('Checking for duplicates since:', fiveSecondsAgo);
+    
     const { data: existingExpenses, error: checkError } = await supabaseAdmin
       .from('expenses')
       .select('*')
@@ -67,7 +74,7 @@ export async function saveExpense(userId: string, transcriptionText: string) {
         throw new Error('Failed to save expense');
       }
 
-      console.log('Expense saved:', expense);
+      console.log('Expense saved successfully:', expense);
       savedExpenses.push(expense);
     } else {
       console.log('Duplicate expense detected, skipping:', expenseDetails);
