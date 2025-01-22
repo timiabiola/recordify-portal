@@ -31,7 +31,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'No audio detected. Please share the expenses you\'d like recorded and the amount!'
+          error: 'No audio detected. Please speak clearly and try again!'
         }),
         { 
           status: 400,
@@ -93,16 +93,29 @@ serve(async (req) => {
     const text = await transcribeAudio(blob);
     console.log('Transcription:', text);
 
+    if (!text || text.trim() === '') {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'No speech detected. Please speak clearly and try again!'
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
     // Extract expense details
     console.log('Extracting expense details...');
     const expenses = await extractExpenseDetails(text);
     console.log('Extracted expenses:', expenses);
 
-    if (!expenses.length) {
+    if (!expenses || expenses.length === 0) {
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'Could not understand the expense details. Please try again and clearly state the amount and category.'
+          error: 'Please clearly state the amount and category of your expense. For example: "Spent 50 dollars on groceries" or "15.99 for Netflix subscription".'
         }),
         { 
           status: 400,
@@ -126,7 +139,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'Failed to save any expenses'
+          error: 'Failed to save expenses'
         }),
         { 
           status: 500,
@@ -150,7 +163,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message || 'An unexpected error occurred'
+        error: 'Please clearly state both the amount and category of your expense. For example: "Spent 20 dollars on lunch" or "Monthly gym membership 50 dollars".'
       }),
       { 
         status: 500,

@@ -61,32 +61,32 @@ export async function extractExpenseDetails(text: string) {
       messages: [
         {
           role: "system",
-          content: `You are a helpful assistant that extracts expense information from text.
-Extract ONLY numerical amount, description, and category from the text.
-Return a JSON array with these exact fields:
-{
-  "amount": number (extract only the numerical value, no currency symbols, must be > 0),
-  "description": string (clear description of what was purchased),
-  "category": string (must be exactly one of: essentials, monthly_recurring, leisure)
-}
-
-Examples:
-"Spent fifty dollars at the grocery store"
-[{"amount": 50, "description": "grocery shopping", "category": "essentials"}]
-
-"My Netflix subscription is 15.99"
-[{"amount": 15.99, "description": "Netflix subscription", "category": "monthly_recurring"}]
-
-"Bought movie tickets for twenty bucks"
-[{"amount": 20, "description": "movie tickets", "category": "leisure"}]
+          content: `You are a helpful assistant that extracts expense information from spoken text.
+Your task is to identify the amount spent and categorize the expense.
 
 Rules:
-1. Convert all word numbers to digits (e.g., "fifty" → 50)
-2. Remove currency symbols and words ($, dollars, bucks)
-3. Description must be specific and clear
-4. Category must be exact match from the list
-5. Return ONLY the JSON array, no other text
-6. Amount must be a positive number`
+1. Amount must be a positive number
+2. Remove any currency symbols or words (e.g., $, dollars, bucks)
+3. Category must be one of: essentials, monthly_recurring, leisure
+4. Description should be clear and specific
+5. If amount or category is unclear, respond with null
+
+Example inputs and outputs:
+"I spent fifty dollars at the grocery store"
+[{"amount": 50, "description": "grocery shopping", "category": "essentials"}]
+
+"Netflix subscription is 15.99"
+[{"amount": 15.99, "description": "Netflix subscription", "category": "monthly_recurring"}]
+
+"Went to the movies yesterday twenty dollars"
+[{"amount": 20, "description": "movie tickets", "category": "leisure"}]
+
+Return ONLY a JSON array with objects containing:
+{
+  "amount": number (must be > 0),
+  "description": string,
+  "category": string (one of: essentials, monthly_recurring, leisure)
+}`
         },
         {
           role: "user",
