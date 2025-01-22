@@ -84,7 +84,7 @@ const Index = () => {
             <CardTitle className="text-3xl sm:text-4xl font-bold tracking-tight text-center">
               Record Expense
             </CardTitle>
-            <CardDescription className="text-center text-base sm:text-lg">
+            <CardDescription className="text-center text-lg sm:text-xl">
               Tap the microphone to record your expense
             </CardDescription>
           </CardHeader>
