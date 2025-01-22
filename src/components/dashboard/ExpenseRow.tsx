@@ -40,7 +40,7 @@ export const ExpenseRow = ({ expense, isMobile, onEdit, onDelete, onRestore }: E
           {expense.categories.name}
         </TableCell>
       )}
-      <TableCell className="text-right font-semibold text-[#1A1F2C]">
+      <TableCell className="text-right font-semibold text-[#ea384c]">
         ${Number(expense.amount).toFixed(2)}
       </TableCell>
       <TableCell className="text-right text-[#8E9196]">
