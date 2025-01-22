@@ -33,6 +33,7 @@ export const createRecordingHandlers = () => {
         const audioData = base64Audio.split(',')[1];
         
         try {
+          console.log('Sending audio data to server...');
           const response = await fetch('/api/voice-to-text', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

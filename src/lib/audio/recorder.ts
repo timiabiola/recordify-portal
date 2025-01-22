@@ -1,4 +1,4 @@
-import { AUDIO_CONSTRAINTS, RECORDER_OPTIONS, AUDIO_FORMAT } from "./config";
+import { AUDIO_CONSTRAINTS, RECORDER_OPTIONS } from "./config";
 import { toast } from "sonner";
 
 export const initializeRecorder = async () => {
@@ -12,10 +12,14 @@ export const initializeRecorder = async () => {
     
     console.log('Audio track settings:', audioTrack.getSettings());
 
-    const recorder = new MediaRecorder(stream, {
-      ...RECORDER_OPTIONS,
-      mimeType: AUDIO_FORMAT.type
-    });
+    // Check if the MIME type is supported
+    if (!MediaRecorder.isTypeSupported(RECORDER_OPTIONS.mimeType)) {
+      console.error('MIME type not supported:', RECORDER_OPTIONS.mimeType);
+      throw new Error(`MIME type ${RECORDER_OPTIONS.mimeType} is not supported`);
+    }
+
+    const recorder = new MediaRecorder(stream, RECORDER_OPTIONS);
+    console.log('MediaRecorder initialized with options:', RECORDER_OPTIONS);
 
     return { recorder, stream };
   } catch (error) {
