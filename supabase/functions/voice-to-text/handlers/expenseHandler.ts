@@ -17,7 +17,7 @@ export async function saveExpense(userId: string, transcriptionText: string) {
 
   const savedExpenses = [];
 
-  // Save each expense
+  // Save each expense, but check for duplicates first
   for (const expenseDetails of expenses) {
     // Get category id
     const { data: categoryData, error: categoryError } = await supabaseAdmin
@@ -31,26 +31,47 @@ export async function saveExpense(userId: string, transcriptionText: string) {
       throw new Error('Invalid expense category');
     }
 
-    // Save expense
-    const { data: expense, error: expenseError } = await supabaseAdmin
+    // Check for duplicate entries within a 5-second window
+    const fiveSecondsAgo = new Date(Date.now() - 5000).toISOString();
+    const { data: existingExpenses, error: checkError } = await supabaseAdmin
       .from('expenses')
-      .insert({
-        user_id: userId,
-        category_id: categoryData.id,
-        amount: expenseDetails.amount,
-        description: expenseDetails.description,
-        transcription: transcriptionText
-      })
-      .select('*, categories(name)')
-      .single();
+      .select('*')
+      .eq('user_id', userId)
+      .eq('category_id', categoryData.id)
+      .eq('amount', expenseDetails.amount)
+      .eq('description', expenseDetails.description)
+      .gte('created_at', fiveSecondsAgo);
 
-    if (expenseError) {
-      console.error('Error saving expense:', expenseError);
-      throw new Error('Failed to save expense');
+    if (checkError) {
+      console.error('Error checking for duplicates:', checkError);
+      throw new Error('Failed to check for duplicate expenses');
     }
 
-    console.log('Expense saved:', expense);
-    savedExpenses.push(expense);
+    // Only save if no recent duplicate exists
+    if (!existingExpenses || existingExpenses.length === 0) {
+      console.log('No duplicate found, saving expense:', expenseDetails);
+      const { data: expense, error: expenseError } = await supabaseAdmin
+        .from('expenses')
+        .insert({
+          user_id: userId,
+          category_id: categoryData.id,
+          amount: expenseDetails.amount,
+          description: expenseDetails.description,
+          transcription: transcriptionText
+        })
+        .select('*, categories(name)')
+        .single();
+
+      if (expenseError) {
+        console.error('Error saving expense:', expenseError);
+        throw new Error('Failed to save expense');
+      }
+
+      console.log('Expense saved:', expense);
+      savedExpenses.push(expense);
+    } else {
+      console.log('Duplicate expense detected, skipping:', expenseDetails);
+    }
   }
 
   return savedExpenses;
