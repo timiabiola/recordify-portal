@@ -63,7 +63,7 @@ export const ActiveExpenses = ({
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-3 sm:p-6 space-y-3 sm:space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
           <h2 className="text-base sm:text-lg font-semibold">Recent Expenses</h2>
           <Button

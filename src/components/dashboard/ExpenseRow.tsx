@@ -26,7 +26,7 @@ export const ExpenseRow = ({ expense, isMobile, onEdit, onDelete, onRestore }: E
       <TableCell className="font-medium">
         <div className="flex items-center gap-2">
           <CategoryIcon categoryName={expense.categories.name} />
-          <span className="truncate max-w-[200px] capitalize text-black">
+          <span className="truncate max-w-[120px] sm:max-w-[200px] capitalize text-black">
             {expense.description}
           </span>
           {isMobile && (

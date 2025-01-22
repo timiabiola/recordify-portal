@@ -23,13 +23,13 @@ export const DashboardHeader = ({
   const isMobile = useIsMobile();
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-3 sm:p-6 mb-3 sm:mb-6">
+    <div className="bg-white rounded-lg shadow-sm p-3 sm:p-6">
       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
         <div className="flex items-center gap-2 sm:gap-4">
           <Button 
             variant="ghost" 
             size="icon" 
-            className="h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0"
+            className="h-8 w-8 sm:h-10 sm:w-10"
             onClick={onBackClick}
           >
             <ArrowLeft className="h-4 w-4" />
