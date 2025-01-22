@@ -45,5 +45,6 @@ export async function saveExpense(userId: string, transcriptionText: string) {
     throw new Error('Failed to save expense');
   }
 
+  console.log('Expense saved successfully:', expense);
   return expense;
 }

@@ -11,10 +11,20 @@ export async function handleRequest(req: Request) {
   try {
     const { audio } = await req.json();
     if (!audio) {
-      throw new Error('No audio data provided');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'No audio data provided'
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     // Process audio data
+    console.log('Processing audio data...');
     const transcriptionResult = await processAudioData(audio);
     
     if (!transcriptionResult.text || transcriptionResult.text.trim() === '') {
@@ -29,6 +39,8 @@ export async function handleRequest(req: Request) {
         }
       );
     }
+
+    console.log('Transcription result:', transcriptionResult);
 
     // Validate user
     const user = await validateUser(req.headers);
@@ -46,17 +58,32 @@ export async function handleRequest(req: Request) {
     }
 
     // Save expense
-    const expense = await saveExpense(user.id, transcriptionResult.text);
-    
-    return new Response(
-      JSON.stringify({
-        success: true,
-        expense: expense
-      }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    );
+    try {
+      const expense = await saveExpense(user.id, transcriptionResult.text);
+      console.log('Expense saved:', expense);
+      
+      return new Response(
+        JSON.stringify({
+          success: true,
+          expense: expense
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    } catch (error) {
+      console.error('Error saving expense:', error);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Please clearly state both the amount and category of your expense. For example: "Spent 20 dollars on lunch" or "Monthly gym membership 50 dollars".'
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
 
   } catch (error) {
     console.error('Edge function error:', error);
@@ -66,7 +93,7 @@ export async function handleRequest(req: Request) {
         error: 'Please clearly state both the amount and category of your expense. For example: "Spent 20 dollars on lunch" or "Monthly gym membership 50 dollars".'
       }),
       { 
-        status: 500,
+        status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
