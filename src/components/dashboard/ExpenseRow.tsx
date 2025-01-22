@@ -25,7 +25,7 @@ export const ExpenseRow = ({ expense, isMobile, onEdit, onDelete, onRestore }: E
       <TableCell className="font-medium">
         <div className="flex items-center gap-2">
           <CategoryIcon categoryName={expense.categories.name} />
-          <span className="truncate max-w-[200px] capitalize text-gray-800">
+          <span className="truncate max-w-[200px] capitalize text-[#7E69AB]">
             {expense.description}
           </span>
           {isMobile && (
@@ -43,7 +43,7 @@ export const ExpenseRow = ({ expense, isMobile, onEdit, onDelete, onRestore }: E
       <TableCell className="text-right font-semibold text-[#ea384c]">
         ${Number(expense.amount).toFixed(2)}
       </TableCell>
-      <TableCell className="text-right text-[#8E9196]">
+      <TableCell className="text-right text-[#7E69AB]">
         {format(new Date(expense.created_at), isMobile ? "MM/dd" : "MM/dd/yyyy")}
       </TableCell>
       <TableCell>
