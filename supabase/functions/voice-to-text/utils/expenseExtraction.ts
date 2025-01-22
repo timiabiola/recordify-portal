@@ -8,8 +8,9 @@ export async function extractExpenseDetails(text: string) {
       apiKey: Deno.env.get('OPENAI_API_KEY')
     });
 
+    console.log('Making OpenAI API request...');
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4",  // Using gpt-4 as gpt-4o-mini is not a valid model name
       messages: [
         {
           role: "system",
