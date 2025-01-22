@@ -1,28 +1,21 @@
-import { toast } from 'sonner';
+import { toast } from "sonner";
 
-export const handleAudioError = (error: unknown) => {
+export const handleRecordingError = (error: unknown) => {
   console.error('Recording error:', error);
-  
-  if (error instanceof DOMException) {
-    switch (error.name) {
-      case 'NotAllowedError':
-        toast.error('Please allow microphone access to record expenses');
-        break;
-      case 'NotFoundError':
-        toast.error('No microphone found. Please check your device settings');
-        break;
-      case 'NotReadableError':
-        toast.error('Could not access microphone. Please check if another app is using it');
-        break;
-      case 'SecurityError':
-        toast.error('Recording is only allowed on secure (HTTPS) connections');
-        break;
-      default:
-        toast.error(`Failed to start recording: ${error.message}`);
-    }
-  } else {
-    toast.error('Failed to start recording. Please try again');
-  }
-  
-  throw error;
+  toast.error('Could not access microphone. Please check permissions.');
+};
+
+export const handleAudioProcessingError = (error: unknown) => {
+  console.error('Audio processing error:', error);
+  toast.error('Failed to process audio. Please try again.');
+};
+
+export const handleEmptyRecordingError = () => {
+  console.error('No audio data recorded');
+  toast.error('No audio was recorded. Please try again.');
+};
+
+export const handleShortRecordingError = () => {
+  console.error('Audio recording too short');
+  toast.error('Recording was too short. Please try again.');
 };
