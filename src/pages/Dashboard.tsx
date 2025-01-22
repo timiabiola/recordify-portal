@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ExpensesTable } from "@/components/dashboard/ExpensesTable";
 import { ExpensesPieChart } from "@/components/dashboard/ExpensesPieChart";
 import { CategorySelect } from "@/components/dashboard/CategorySelect";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -25,6 +25,7 @@ type DateRange = {
 
 const Dashboard = () => {
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [dateRangeType, setDateRangeType] = useState<'monthly' | 'ytd' | 'ttm'>('monthly');
@@ -66,6 +67,18 @@ const Dashboard = () => {
   };
 
   const dateRange = getDateRange();
+
+  const handleBackClick = () => {
+    // If we're in a filtered view, go back to the main dashboard view
+    if (dateRangeType !== 'monthly' || selectedCategory !== 'all') {
+      setDateRangeType('monthly');
+      setSelectedMonth(new Date());
+      setSelectedCategory('all');
+    } else {
+      // If we're in the default view, navigate to the home page
+      navigate('/');
+    }
+  };
 
   const { data: categories } = useQuery({
     queryKey: ["categories"],
@@ -126,11 +139,14 @@ const Dashboard = () => {
   return (
     <div className="container py-4 sm:py-6 space-y-4 sm:space-y-6 px-4 sm:px-6">
       <div className="flex items-center gap-2 sm:gap-4">
-        <Link to="/">
-          <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-10 sm:w-10">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="h-8 w-8 sm:h-10 sm:w-10"
+          onClick={handleBackClick}
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
         <div className="flex-1">
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Monthly Budget</h1>
           <p className="text-muted-foreground">{dateRange.label}</p>
