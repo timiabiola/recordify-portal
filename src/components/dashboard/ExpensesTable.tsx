@@ -41,6 +41,12 @@ export const ExpensesTable = ({ expenses }: ExpensesTableProps) => {
     return str.charAt(0).toUpperCase() + str.slice(1);
   };
 
+  const formatDescription = (description: string) => {
+    return capitalizeFirstLetter(
+      description.trim().split(/\s+/).slice(0, 2).join(' ')
+    );
+  };
+
   return (
     <div className="w-full overflow-auto">
       <Table>
@@ -60,7 +66,7 @@ export const ExpensesTable = ({ expenses }: ExpensesTableProps) => {
                 <div className="flex items-center gap-2">
                   {isMobile && <CategoryIcon categoryName={expense.categories.name} />}
                   <span className="truncate max-w-[150px] sm:max-w-none">
-                    {capitalizeFirstLetter(expense.description)}
+                    {formatDescription(expense.description)}
                   </span>
                 </div>
               </TableCell>

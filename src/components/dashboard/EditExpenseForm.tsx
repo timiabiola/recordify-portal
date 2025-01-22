@@ -10,7 +10,12 @@ import { useExpenseMutation } from "@/hooks/use-expense-mutation";
 import { useCategories } from "@/hooks/use-categories";
 
 const formSchema = z.object({
-  description: z.string().min(1, "Description is required"),
+  description: z.string()
+    .min(1, "Description is required")
+    .refine(
+      (val) => val.trim().split(/\s+/).length <= 2,
+      "Description must be maximum two words"
+    ),
   amount: z.string().min(1, "Amount is required").refine(
     (val) => !isNaN(Number(val)) && Number(val) > 0,
     "Amount must be a positive number"
@@ -48,8 +53,14 @@ export const EditExpenseForm = ({ expense }: EditExpenseFormProps) => {
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     console.log('Form submitted with values:', values);
+    const description = values.description
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .join(' ');
+      
     mutation.mutate({
-      description: capitalizeFirstLetter(values.description),
+      description: capitalizeFirstLetter(description),
       amount: Number(values.amount),
       category_id: values.category_id,
     });
@@ -63,7 +74,7 @@ export const EditExpenseForm = ({ expense }: EditExpenseFormProps) => {
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description</FormLabel>
+              <FormLabel>Description (max 2 words)</FormLabel>
               <FormControl>
                 <Input {...field} />
               </FormControl>
