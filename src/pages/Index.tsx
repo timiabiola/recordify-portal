@@ -111,12 +111,12 @@ const Index = () => {
             </div>
 
             <div className="mt-8 text-center">
-              <Link to="/dashboard">
-                <Button variant="outline" className="w-full sm:w-auto gap-2">
+              <Button variant="outline" className="w-full sm:w-auto gap-2" asChild>
+                <Link to="/dashboard">
                   <BarChart3 className="h-5 w-5" />
                   View Dashboard
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             </div>
           </CardContent>
         </Card>
