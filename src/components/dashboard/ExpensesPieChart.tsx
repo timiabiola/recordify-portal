@@ -54,27 +54,34 @@ export const ExpensesPieChart = ({ expenses }: ExpensesPieChartProps) => {
     );
   }
 
-  // Process data for the pie chart
+  // Process data for the pie chart, including recurring payments
   const data = expenses.reduce((acc: ExpenseData[], expense) => {
     const categoryName = expense.categories.name;
     const existingCategory = acc.find(item => item.category === categoryName);
     
+    // For recurring payments, multiply the amount by 12 to show annual impact
+    const amount = categoryName === 'recurring_payments' 
+      ? Number(expense.amount) * 12  // Annualize monthly payments
+      : Number(expense.amount);
+    
     if (existingCategory) {
-      existingCategory.amount += Number(expense.amount);
+      existingCategory.amount += amount;
     } else {
       acc.push({
         category: categoryName,
-        amount: Number(expense.amount)
+        amount: amount
       });
     }
     
     return acc;
   }, []);
 
+  console.log('[ExpensesPieChart] Processed data:', data);
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Expense Distribution</CardTitle>
+        <CardTitle>Annual Expense Distribution</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="h-[300px]">
@@ -100,10 +107,16 @@ export const ExpensesPieChart = ({ expenses }: ExpensesPieChartProps) => {
               </Pie>
               <Tooltip 
                 formatter={(value: number) => `$${value.toFixed(2)}`}
-                labelFormatter={(category) => category.charAt(0).toUpperCase() + category.slice(1).replace('_', ' ')}
+                labelFormatter={(category) => {
+                  const label = category.charAt(0).toUpperCase() + category.slice(1).replace('_', ' ');
+                  return category === 'recurring_payments' ? `${label} (Yearly)` : label;
+                }}
               />
               <Legend 
-                formatter={(value) => value.charAt(0).toUpperCase() + value.slice(1).replace('_', ' ')}
+                formatter={(value) => {
+                  const label = value.charAt(0).toUpperCase() + value.slice(1).replace('_', ' ');
+                  return value === 'recurring_payments' ? `${label} (Yearly)` : label;
+                }}
               />
             </PieChart>
           </ResponsiveContainer>
