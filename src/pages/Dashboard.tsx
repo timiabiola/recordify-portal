@@ -61,21 +61,13 @@ const Dashboard = () => {
 
   return (
     <div className="container py-4 sm:py-6 space-y-4 sm:space-y-6 px-4 sm:px-6">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 sm:gap-0">
-        <div className="flex items-center gap-2 sm:gap-4">
-          <Link to="/">
-            <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-10 sm:w-10">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Dashboard</h1>
-        </div>
+      <div className="flex items-center gap-2 sm:gap-4">
         <Link to="/">
-          <Button className="w-full sm:w-auto gap-2">
-            <Mic className="h-4 w-4" />
-            Record Expense
+          <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-10 sm:w-10">
+            <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Dashboard</h1>
       </div>
 
       <div className="space-y-4 sm:space-y-6">
