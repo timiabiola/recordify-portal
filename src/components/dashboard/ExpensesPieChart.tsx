@@ -51,6 +51,8 @@ export const ExpensesPieChart = ({ expenses, dateRange }: ExpensesPieChartProps)
 
   const totalExpenses = data.reduce((total, item) => total + item.amount, 0);
 
+  const renderLabel = (props: any) => <PieChartLabel {...props} isMobile={isMobile} />;
+
   return (
     <Card>
       <CardHeader className="space-y-1 p-3 sm:p-6">
@@ -70,7 +72,7 @@ export const ExpensesPieChart = ({ expenses, dateRange }: ExpensesPieChartProps)
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={PieChartLabel}
+                label={renderLabel}
                 outerRadius={isMobile ? 70 : 100}
                 fill="#8884d8"
                 dataKey="amount"

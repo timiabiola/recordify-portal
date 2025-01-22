@@ -1,5 +1,3 @@
-import { useIsMobile } from "@/hooks/use-mobile";
-
 const RADIAN = Math.PI / 180;
 
 type PieChartLabelProps = {
@@ -9,6 +7,7 @@ type PieChartLabelProps = {
   innerRadius: number;
   outerRadius: number;
   percent: number;
+  isMobile?: boolean;
 };
 
 export const PieChartLabel = ({
@@ -18,8 +17,8 @@ export const PieChartLabel = ({
   innerRadius,
   outerRadius,
   percent,
+  isMobile,
 }: PieChartLabelProps) => {
-  const isMobile = useIsMobile();
   const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
   const x = cx + radius * Math.cos(-midAngle * RADIAN);
   const y = cy + radius * Math.sin(-midAngle * RADIAN);
