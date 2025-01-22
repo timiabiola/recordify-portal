@@ -13,8 +13,10 @@ export const setupRecorderEvents = (
       type: e.data.type,
       timestamp: new Date().toISOString()
     });
+    
     if (e.data.size > 0) {
       chunks.push(e.data);
+      console.log('[Audio Recorder] Chunk added, total chunks:', chunks.length);
     }
   };
 
@@ -22,44 +24,52 @@ export const setupRecorderEvents = (
     console.log('[Audio Recorder] Recording stopped, processing chunks:', {
       totalChunks: chunks.length,
       sizes: chunks.map(chunk => chunk.size),
-      types: chunks.map(chunk => chunk.type)
+      types: chunks.map(chunk => chunk.type),
+      timestamp: new Date().toISOString()
     });
     
-    // Check for no audio or silence
-    const hasAudioData = chunks.some(chunk => chunk.size > 0);
-    const totalSize = chunks.reduce((sum, chunk) => sum + chunk.size, 0);
-    
-    console.log('[Audio Recorder] Audio data check:', {
-      hasAudioData,
-      totalSize,
-      chunksLength: chunks.length
-    });
-
-    if (!hasAudioData || totalSize < 100) {
-      console.log('[Audio Recorder] No audio detected or silence');
-      toast.error('No audio detected. Please try again.');
-      cleanupFn();
-      return;
-    }
-
-    if (chunks.length > 0) {
-      try {
-        await onStop(chunks, recorder.mimeType);
-      } catch (error) {
-        console.error('[Audio Recorder] Error processing chunks:', error);
-        toast.error('Error processing recording. Please try again.');
+    try {
+      // Ensure we have valid audio data
+      if (chunks.length === 0) {
+        console.error('[Audio Recorder] No chunks recorded');
+        toast.error('No audio recorded. Please try again.');
+        cleanupFn();
+        return;
       }
-    } else {
-      console.error('[Audio Recorder] No audio data recorded');
-      toast.error('No audio detected. Please try again.');
+
+      const totalSize = chunks.reduce((sum, chunk) => sum + chunk.size, 0);
+      console.log('[Audio Recorder] Total audio size:', totalSize, 'bytes');
+
+      if (totalSize < 100) {
+        console.error('[Audio Recorder] Audio data too small:', totalSize, 'bytes');
+        toast.error('Recording too short. Please try again.');
+        cleanupFn();
+        return;
+      }
+
+      // Create a test blob to verify data integrity
+      const testBlob = new Blob(chunks, { type: recorder.mimeType });
+      if (!testBlob.size) {
+        throw new Error('Invalid audio data');
+      }
+
+      console.log('[Audio Recorder] Processing audio with mime type:', recorder.mimeType);
+      await onStop(chunks, recorder.mimeType);
+      console.log('[Audio Recorder] Audio processing completed successfully');
+      
+    } catch (error) {
+      console.error('[Audio Recorder] Error processing recording:', error);
+      toast.error('Failed to process recording. Please try again.');
+    } finally {
+      cleanupFn();
+      setIsRecording(false);
     }
-    cleanupFn();
   };
 
   recorder.onerror = (event) => {
     console.error('[Audio Recorder] Recorder error:', event);
+    toast.error('Recording error occurred. Please try again.');
     cleanupFn();
     setIsRecording(false);
-    toast.error('Recording error occurred. Please try again.');
   };
 };

@@ -44,12 +44,13 @@ export const useAudioRecorder = (
       );
 
       recorderState.current.mediaRecorder = recorder;
-      recorder.start(500); // Consistent smaller chunk size for better handling
+      recorder.start(250); // Smaller chunk size for more reliable processing
       setIsRecording(true);
 
       console.log('[Audio Recorder] Recording started successfully', {
         state: recorder.state,
-        mimeType: recorder.mimeType
+        mimeType: recorder.mimeType,
+        timestamp: new Date().toISOString()
       });
 
     } catch (error) {
