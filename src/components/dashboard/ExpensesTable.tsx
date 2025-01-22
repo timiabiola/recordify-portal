@@ -10,6 +10,10 @@ import { CategoryIcon } from "./CategoryIcon";
 import { formatCategoryName } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { format } from "date-fns";
+import { Pencil } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 type Expense = {
   id: string;
@@ -27,6 +31,13 @@ type ExpensesTableProps = {
 
 export const ExpensesTable = ({ expenses }: ExpensesTableProps) => {
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
+
+  const handleEdit = (expenseId: string) => {
+    // For now, we'll just show a toast since the edit page isn't implemented yet
+    console.log('Editing expense:', expenseId);
+    toast.info("Edit functionality coming soon!");
+  };
 
   return (
     <div className="w-full overflow-auto">
@@ -37,6 +48,7 @@ export const ExpensesTable = ({ expenses }: ExpensesTableProps) => {
             {!isMobile && <TableHead>Category</TableHead>}
             <TableHead className="text-right">Amount</TableHead>
             <TableHead className="text-right">{isMobile ? 'Date' : 'Created At'}</TableHead>
+            <TableHead className="w-[50px]"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -62,11 +74,21 @@ export const ExpensesTable = ({ expenses }: ExpensesTableProps) => {
               <TableCell className="text-right text-muted-foreground">
                 {format(new Date(expense.created_at), isMobile ? 'MM/dd/yy' : 'MMM dd, yyyy')}
               </TableCell>
+              <TableCell>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => handleEdit(expense.id)}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </TableCell>
             </TableRow>
           ))}
           {(!expenses || expenses.length === 0) && (
             <TableRow>
-              <TableCell colSpan={isMobile ? 3 : 4} className="text-center text-muted-foreground">
+              <TableCell colSpan={isMobile ? 4 : 5} className="text-center text-muted-foreground">
                 No expenses found
               </TableCell>
             </TableRow>
