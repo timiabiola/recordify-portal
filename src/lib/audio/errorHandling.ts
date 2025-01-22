@@ -6,31 +6,25 @@ export const handleRecordingError = (error: unknown) => {
   if (error instanceof DOMException) {
     switch (error.name) {
       case 'NotAllowedError':
-        toast({
-          variant: "destructive",
-          title: "Microphone access denied",
-          description: 'Please allow microphone access in your browser settings.'
-        });
+        toast.error('Please allow microphone access in your browser settings.');
         break;
       case 'NotFoundError':
-        toast({
-          variant: "destructive",
-          title: "No microphone found",
-          description: 'Please ensure your device has a working microphone.'
-        });
+        toast.error('Please ensure your device has a working microphone.');
         break;
       default:
-        toast({
-          variant: "destructive",
-          title: "Recording failed",
-          description: `${error.name}: ${error.message}`
-        });
+        toast.error(`${error.name}: ${error.message}`);
     }
   } else {
-    toast({
-      variant: "destructive",
-      title: "Recording failed",
-      description: 'Please check your microphone permissions.'
-    });
+    toast.error('Please check your microphone permissions.');
   }
+};
+
+export const handleEmptyRecordingError = () => {
+  console.error('Empty recording detected');
+  toast.error('No audio was recorded. Please try again.');
+};
+
+export const handleShortRecordingError = () => {
+  console.error('Recording too short');
+  toast.error('Recording was too short. Please speak for longer.');
 };

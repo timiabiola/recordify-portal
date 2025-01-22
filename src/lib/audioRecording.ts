@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { handleRecordingError, handleEmptyRecordingError, handleShortRecordingError } from './audio/errorHandling';
-import { getSupportedMimeType } from './audio/config';
+import { getSupportedMimeType, AUDIO_CONSTRAINTS } from './audio/config';
 
 interface StartRecordingOptions {
   isRecording: boolean;
@@ -13,19 +13,13 @@ export async function startRecording({ isRecording, setIsRecording, options }: S
   try {
     console.log('Starting recording...');
     
-    // Check if permission is already granted
     const permissionResult = await navigator.permissions.query({ name: 'microphone' as PermissionName });
     console.log('Current microphone permission status:', permissionResult.state);
 
     const stream = await navigator.mediaDevices.getUserMedia({ 
-      audio: {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true
-      }
+      audio: AUDIO_CONSTRAINTS
     });
     
-    // Verify that we have an active audio track
     const audioTrack = stream.getAudioTracks()[0];
     if (!audioTrack || !audioTrack.enabled) {
       throw new Error('No active audio track available');
@@ -66,7 +60,6 @@ export async function startRecording({ isRecording, setIsRecording, options }: S
         return;
       }
       
-      // Convert blob to base64
       const reader = new FileReader();
       reader.readAsDataURL(audioBlob);
       
@@ -90,7 +83,6 @@ export async function startRecording({ isRecording, setIsRecording, options }: S
           
           if (data?.success && data?.expenses) {
             toast.success('Expenses recorded successfully!');
-            // Refresh the page to show new expenses
             window.location.reload();
           } else if (data?.error && data.error.includes('No audio detected')) {
             toast.error(data.error);

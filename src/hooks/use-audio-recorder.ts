@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
 import { AUDIO_CONSTRAINTS, RECORDER_OPTIONS } from '@/lib/audio/config';
 import { handleRecordingError } from '@/lib/audio/errorHandling';
-import { getSupportedMimeType, validateAudioTrack } from '@/lib/audio/recorder';
+import { getSupportedMimeType } from '@/lib/audio/config';
 import type { AudioRecorderHook, RecordingHandlers } from '@/lib/audio/types';
 
 export const useAudioRecorder = (
@@ -46,19 +46,11 @@ export const useAudioRecorder = (
         console.log('Voice processing result:', result);
 
         if (!result.success) {
-          toast({
-            variant: "destructive",
-            title: "Processing failed",
-            description: result.error || 'Failed to process voice recording'
-          });
+          toast.error(result.error || 'Failed to process voice recording');
         }
       } catch (error) {
         console.error('Error processing recording:', error);
-        toast({
-          variant: "destructive",
-          title: "Processing failed",
-          description: 'Failed to process your recording'
-        });
+        toast.error('Failed to process your recording');
       }
     }
   };
@@ -74,7 +66,11 @@ export const useAudioRecorder = (
       }
       
       const stream = await navigator.mediaDevices.getUserMedia({ audio: AUDIO_CONSTRAINTS });
-      validateAudioTrack(stream);
+      const audioTrack = stream.getAudioTracks()[0];
+      if (!audioTrack || !audioTrack.enabled) {
+        throw new Error('No active audio track available');
+      }
+      console.log('Audio track settings:', audioTrack.getSettings());
       
       const selectedMimeType = getSupportedMimeType();
       console.log('Selected MIME type:', selectedMimeType);
