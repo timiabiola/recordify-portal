@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { handleRecordingError, handleEmptyRecordingError, handleShortRecordingError } from './audio/errorHandling';
+import { getSupportedMimeType } from './audio/config';
 
 interface StartRecordingOptions {
   isRecording: boolean;
@@ -10,7 +11,7 @@ interface StartRecordingOptions {
 
 export async function startRecording({ isRecording, setIsRecording, options }: StartRecordingOptions) {
   try {
-    console.log('Starting recording with options:', options);
+    console.log('Starting recording...');
     
     // Check if permission is already granted
     const permissionResult = await navigator.permissions.query({ name: 'microphone' as PermissionName });
@@ -32,8 +33,11 @@ export async function startRecording({ isRecording, setIsRecording, options }: S
     
     console.log('Audio track settings:', audioTrack.getSettings());
     
+    const supportedMimeType = getSupportedMimeType();
+    console.log('Selected MIME type:', supportedMimeType);
+
     const mediaRecorder = new MediaRecorder(stream, {
-      mimeType: 'audio/webm',  // Simplified MIME type
+      mimeType: supportedMimeType,
       ...options
     });
     
@@ -54,7 +58,7 @@ export async function startRecording({ isRecording, setIsRecording, options }: S
         return;
       }
 
-      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+      const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
       console.log('Audio blob created:', audioBlob.size, 'bytes');
       
       if (audioBlob.size < 100) {
