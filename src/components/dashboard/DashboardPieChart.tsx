@@ -16,7 +16,7 @@ export const DashboardPieChart = ({
   dateRange,
 }: DashboardPieChartProps) => {
   return (
-    <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+    <div className="bg-white rounded-lg shadow-sm p-3 sm:p-6">
       <ExpensesPieChart 
         expenses={expenses} 
         selectedMonth={selectedMonth} 

@@ -30,7 +30,6 @@ export const ActiveExpenses = ({
       return;
     }
 
-    // Create CSV content
     const headers = ["Description", "Category", "Amount", "Created At"];
     const rows = expenses.map((expense) => [
       expense.description,
@@ -44,7 +43,6 @@ export const ActiveExpenses = ({
       ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
     ].join("\n");
 
-    // Create and download the file
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
@@ -64,15 +62,15 @@ export const ActiveExpenses = ({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-          <h2 className="text-lg sm:text-xl font-semibold">Recent Expenses</h2>
+    <div className="bg-white rounded-lg shadow-sm p-3 sm:p-6 space-y-3 sm:space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+          <h2 className="text-base sm:text-lg font-semibold">Recent Expenses</h2>
           <Button
             variant="ghost"
             size="icon"
             onClick={handleExport}
-            className="w-9 h-9"
+            className="w-8 h-8 sm:w-9 sm:h-9"
             title="Export to CSV"
           >
             <Download className="h-4 w-4" />
@@ -87,7 +85,7 @@ export const ActiveExpenses = ({
           />
         </div>
       </div>
-      <div className="overflow-x-auto -mx-4 sm:mx-0">
+      <div className="overflow-x-auto -mx-3 sm:-mx-6">
         <div className="min-w-full inline-block align-middle">
           <ExpensesTable expenses={expenses} />
         </div>

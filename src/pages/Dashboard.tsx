@@ -12,7 +12,6 @@ const Dashboard = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [dateRangeType, setDateRangeType] = useState<'monthly' | 'ytd' | 'ttm'>('monthly');
 
-  // Calculate date ranges based on selected type
   const getDateRange = () => {
     const now = new Date();
     
@@ -109,7 +108,7 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container py-4 sm:py-6 space-y-4 sm:space-y-6 px-0 sm:px-6">
+      <div className="container max-w-5xl py-3 sm:py-6 space-y-3 sm:space-y-6 px-3 sm:px-6">
         <DashboardHeader
           onBackClick={handleBackClick}
           dateRangeType={dateRangeType}
