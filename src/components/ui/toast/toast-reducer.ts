@@ -1,7 +1,7 @@
 import { Action, State } from "./toast-types";
 
-export const TOAST_LIMIT = 1;
-export const TOAST_REMOVE_DELAY = 1000;
+export const TOAST_LIMIT = 3;
+export const TOAST_REMOVE_DELAY = 3000;
 
 export const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
 
