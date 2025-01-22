@@ -1,4 +1,4 @@
-import { Receipt, Clock, Coffee } from 'lucide-react';
+import { ShoppingBag, Clock, DollarSign } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -29,13 +29,13 @@ export const CategoryIcon = ({ categoryName, className = "w-4 h-4", showTooltip 
   const icon = (() => {
     switch (categoryName) {
       case 'essentials':
-        return <Receipt className={className} />;
+        return <ShoppingBag className={className} />;
       case 'recurring_payments':
         return <Clock className={className} />;
       case 'leisure':
-        return <Coffee className={className} />;
+        return <DollarSign className={className} />;
       default:
-        return <Receipt className={className} />;
+        return <ShoppingBag className={className} />;
     }
   })();
 
