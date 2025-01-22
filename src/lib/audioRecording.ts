@@ -11,6 +11,11 @@ interface StartRecordingOptions {
 export async function startRecording({ isRecording, setIsRecording, options }: StartRecordingOptions) {
   try {
     console.log('Starting recording with options:', options);
+    
+    // Check if permission is already granted
+    const permissionResult = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+    console.log('Current microphone permission status:', permissionResult.state);
+
     const stream = await navigator.mediaDevices.getUserMedia({ 
       audio: {
         echoCancellation: true,
@@ -19,8 +24,16 @@ export async function startRecording({ isRecording, setIsRecording, options }: S
       }
     });
     
+    // Verify that we have an active audio track
+    const audioTrack = stream.getAudioTracks()[0];
+    if (!audioTrack || !audioTrack.enabled) {
+      throw new Error('No active audio track available');
+    }
+    
+    console.log('Audio track settings:', audioTrack.getSettings());
+    
     const mediaRecorder = new MediaRecorder(stream, {
-      mimeType: 'audio/webm',  // Consistent MIME type
+      mimeType: 'audio/webm',
       ...options
     });
     
