@@ -80,13 +80,12 @@ const Index = () => {
         </div>
         
         <Card className="w-full max-w-md mx-auto">
-
           <CardHeader>
             <CardTitle className="text-3xl sm:text-4xl font-bold tracking-tight text-center">
               Record Expense
             </CardTitle>
             <CardDescription className="text-center text-base sm:text-lg">
-              Speak your expense details
+              Tap the microphone to record your expense
             </CardDescription>
           </CardHeader>
           
