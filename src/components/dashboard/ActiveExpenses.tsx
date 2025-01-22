@@ -63,8 +63,8 @@ export const ActiveExpenses = ({
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-3 sm:p-6 space-y-3 sm:space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
           <h2 className="text-base sm:text-lg font-semibold">Recent Expenses</h2>
           <Button
             variant="ghost"
@@ -76,14 +76,12 @@ export const ActiveExpenses = ({
             <Download className="h-4 w-4" />
           </Button>
         </div>
-        <div className="w-full sm:w-auto">
-          <CategorySelect
-            selectedCategory={selectedCategory}
-            categories={categories}
-            onCategoryChange={onCategoryChange}
-            showAllOption={true}
-          />
-        </div>
+        <CategorySelect
+          selectedCategory={selectedCategory}
+          categories={categories}
+          onCategoryChange={onCategoryChange}
+          showAllOption={true}
+        />
       </div>
       <div className="overflow-x-auto -mx-3 sm:-mx-6">
         <div className="min-w-full inline-block align-middle">

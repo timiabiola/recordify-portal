@@ -32,7 +32,7 @@ export const CategorySelect = ({
   if (!categories) {
     return (
       <Select value={selectedCategory} onValueChange={onCategoryChange}>
-        <SelectTrigger className={`${isMobile ? 'w-full' : 'w-[180px]'}`}>
+        <SelectTrigger className="w-full">
           <SelectValue placeholder="Loading categories..." />
         </SelectTrigger>
       </Select>
@@ -41,7 +41,7 @@ export const CategorySelect = ({
 
   return (
     <Select value={selectedCategory} onValueChange={onCategoryChange}>
-      <SelectTrigger className={`${isMobile ? 'w-full' : 'w-[180px]'}`}>
+      <SelectTrigger className="w-full">
         <SelectValue placeholder="Select category" />
       </SelectTrigger>
       <SelectContent>
