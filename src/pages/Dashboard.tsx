@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState } from "react";
-import { format, subMonths, startOfMonth, endOfMonth } from "date-fns";
+import { format, subMonths, startOfMonth, endOfMonth, startOfYear } from "date-fns";
 import {
   Select,
   SelectContent,
@@ -17,10 +17,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+type DateRange = {
+  start: Date;
+  end: Date;
+  label: string;
+};
+
 const Dashboard = () => {
   const isMobile = useIsMobile();
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedMonth, setSelectedMonth] = useState(new Date());
+  const [dateRangeType, setDateRangeType] = useState<'monthly' | 'ytd' | 'ttm'>('monthly');
 
   // Generate last 12 months for the dropdown
   const last12Months = Array.from({ length: 12 }, (_, i) => {
@@ -30,6 +37,35 @@ const Dashboard = () => {
       label: format(date, 'MMMM yyyy')
     };
   });
+
+  // Calculate date ranges based on selected type
+  const getDateRange = (): DateRange => {
+    const now = new Date();
+    
+    switch (dateRangeType) {
+      case 'ytd':
+        return {
+          start: startOfYear(now),
+          end: now,
+          label: `YTD ${format(now, 'yyyy')}`
+        };
+      case 'ttm':
+        return {
+          start: startOfMonth(subMonths(now, 11)),
+          end: endOfMonth(now),
+          label: 'Last 12 Months'
+        };
+      case 'monthly':
+      default:
+        return {
+          start: startOfMonth(selectedMonth),
+          end: endOfMonth(selectedMonth),
+          label: format(selectedMonth, 'MMMM yyyy')
+        };
+    }
+  };
+
+  const dateRange = getDateRange();
 
   const { data: categories } = useQuery({
     queryKey: ["categories"],
@@ -49,9 +85,17 @@ const Dashboard = () => {
   });
 
   const { data: expenses } = useQuery({
-    queryKey: ["expenses", selectedCategory, selectedMonth],
+    queryKey: ["expenses", selectedCategory, dateRange],
     queryFn: async () => {
-      console.log("Fetching expenses with filters:", { selectedCategory, selectedMonth });
+      console.log("Fetching expenses with filters:", { 
+        selectedCategory, 
+        dateRange: {
+          start: dateRange.start.toISOString(),
+          end: dateRange.end.toISOString(),
+          type: dateRangeType
+        }
+      });
+      
       let query = supabase
         .from("expenses")
         .select(`
@@ -60,8 +104,8 @@ const Dashboard = () => {
             name
           )
         `)
-        .gte('created_at', startOfMonth(selectedMonth).toISOString())
-        .lte('created_at', endOfMonth(selectedMonth).toISOString())
+        .gte('created_at', dateRange.start.toISOString())
+        .lte('created_at', dateRange.end.toISOString())
         .order("created_at", { ascending: false });
 
       if (selectedCategory !== "all") {
@@ -89,27 +133,45 @@ const Dashboard = () => {
         </Link>
         <div className="flex-1">
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Monthly Budget</h1>
-          <p className="text-muted-foreground">{format(selectedMonth, 'MMMM yyyy')}</p>
+          <p className="text-muted-foreground">{dateRange.label}</p>
         </div>
-        <Select
-          value={selectedMonth.toISOString()}
-          onValueChange={(value) => setSelectedMonth(new Date(value))}
-        >
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Select month" />
-          </SelectTrigger>
-          <SelectContent>
-            {last12Months.map((month) => (
-              <SelectItem key={month.value} value={month.value}>
-                {month.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex gap-2">
+          <Select
+            value={dateRangeType}
+            onValueChange={(value: 'monthly' | 'ytd' | 'ttm') => setDateRangeType(value)}
+          >
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Select range" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="monthly">Monthly</SelectItem>
+              <SelectItem value="ytd">Year to Date</SelectItem>
+              <SelectItem value="ttm">Last 12 Months</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          {dateRangeType === 'monthly' && (
+            <Select
+              value={selectedMonth.toISOString()}
+              onValueChange={(value) => setSelectedMonth(new Date(value))}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Select month" />
+              </SelectTrigger>
+              <SelectContent>
+                {last12Months.map((month) => (
+                  <SelectItem key={month.value} value={month.value}>
+                    {month.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
       </div>
 
       <div className="space-y-4 sm:space-y-6">
-        <ExpensesPieChart expenses={expenses} selectedMonth={selectedMonth} />
+        <ExpensesPieChart expenses={expenses} selectedMonth={selectedMonth} dateRange={dateRange} />
         
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

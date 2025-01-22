@@ -1,6 +1,5 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { startOfMonth, endOfMonth } from 'date-fns';
 
 type ExpenseData = {
   category: string;
@@ -41,33 +40,29 @@ type ExpensesPieChartProps = {
     created_at: string;
   }[];
   selectedMonth: Date;
+  dateRange: {
+    start: Date;
+    end: Date;
+    label: string;
+  };
 };
 
-export const ExpensesPieChart = ({ expenses, selectedMonth }: ExpensesPieChartProps) => {
+export const ExpensesPieChart = ({ expenses, dateRange }: ExpensesPieChartProps) => {
   if (!expenses || expenses.length === 0) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Monthly Expense Distribution</CardTitle>
+          <CardTitle>Expense Distribution</CardTitle>
         </CardHeader>
         <CardContent className="h-[300px] flex items-center justify-center text-muted-foreground">
-          No expenses found for this month
+          No expenses found for this period
         </CardContent>
       </Card>
     );
   }
 
-  // Filter expenses for the selected month
-  const monthStart = startOfMonth(selectedMonth);
-  const monthEnd = endOfMonth(selectedMonth);
-
-  const currentMonthExpenses = expenses.filter(expense => {
-    const expenseDate = new Date(expense.created_at);
-    return expenseDate >= monthStart && expenseDate <= monthEnd;
-  });
-
   // Process data for the pie chart
-  const data = currentMonthExpenses.reduce((acc: ExpenseData[], expense) => {
+  const data = expenses.reduce((acc: ExpenseData[], expense) => {
     const categoryName = expense.categories.name;
     const existingCategory = acc.find(item => item.category === categoryName);
     const amount = Number(expense.amount);
@@ -84,18 +79,18 @@ export const ExpensesPieChart = ({ expenses, selectedMonth }: ExpensesPieChartPr
     return acc;
   }, []);
 
-  console.log('[ExpensesPieChart] Current month data:', data);
+  console.log('[ExpensesPieChart] Current period data:', data);
 
-  // Calculate total monthly expenses
-  const totalMonthlyExpenses = data.reduce((total, item) => total + item.amount, 0);
+  // Calculate total expenses for the period
+  const totalExpenses = data.reduce((total, item) => total + item.amount, 0);
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex flex-col gap-2">
-          <span>Monthly Expense Distribution</span>
+          <span>Expense Distribution - {dateRange.label}</span>
           <span className="text-sm font-normal text-muted-foreground">
-            Total: ${totalMonthlyExpenses.toFixed(2)}
+            Total: ${totalExpenses.toFixed(2)}
           </span>
         </CardTitle>
       </CardHeader>
