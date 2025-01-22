@@ -45,8 +45,7 @@ export const useAudioRecorder = (
       mediaRecorderRef.current = recorder;
       console.log('[AudioRecorder Hook] Recording started successfully', {
         state: recorder.state,
-        mimeType: recorder.mimeType,
-        options: recorder.options
+        mimeType: recorder.mimeType
       });
     } catch (error) {
       console.error('[AudioRecorder Hook] Error in handleStartRecording:', error);
