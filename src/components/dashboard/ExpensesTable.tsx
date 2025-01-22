@@ -13,7 +13,6 @@ import { format } from "date-fns";
 import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 
 type Expense = {
   id: string;
@@ -34,9 +33,8 @@ export const ExpensesTable = ({ expenses }: ExpensesTableProps) => {
   const navigate = useNavigate();
 
   const handleEdit = (expenseId: string) => {
-    // For now, we'll just show a toast since the edit page isn't implemented yet
-    console.log('Editing expense:', expenseId);
-    toast.info("Edit functionality coming soon!");
+    console.log('Navigating to edit expense:', expenseId);
+    navigate(`/edit-expense/${expenseId}`);
   };
 
   return (
