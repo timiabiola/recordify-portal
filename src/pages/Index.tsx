@@ -66,19 +66,8 @@ const Index = () => {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4 sm:p-6">
-      {/* Header with Navigation */}
-      <div className="fixed top-4 right-4 flex gap-2">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Link to="/dashboard">
-              <Button variant="outline" size="icon" className="w-10 h-10">
-                <BarChart3 className="h-5 w-5" />
-              </Button>
-            </Link>
-          </TooltipTrigger>
-          <TooltipContent>View Dashboard</TooltipContent>
-        </Tooltip>
-        
+      {/* Header with Sign Out */}
+      <div className="fixed top-4 right-4">
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="outline" size="icon" onClick={signOut} className="w-10 h-10">
@@ -118,6 +107,15 @@ const Index = () => {
             <p className="mt-2 font-medium text-foreground">
               "I spent $25 on lunch at the cafe yesterday"
             </p>
+          </div>
+
+          <div className="mt-8 text-center">
+            <Link to="/dashboard">
+              <Button variant="outline" className="w-full sm:w-auto gap-2">
+                <BarChart3 className="h-5 w-5" />
+                View Dashboard
+              </Button>
+            </Link>
           </div>
         </CardContent>
       </Card>
