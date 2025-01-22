@@ -4,13 +4,17 @@ import { validateUser } from "./authHandler.ts";
 import { saveExpense } from "./expenseHandler.ts";
 
 export async function handleRequest(req: Request) {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const { audio } = await req.json();
+    console.log('[Voice-to-Text] Processing request with audio data length:', audio?.length);
+
     if (!audio) {
+      console.error('[Voice-to-Text] No audio data provided');
       return new Response(
         JSON.stringify({
           success: false,
@@ -23,28 +27,11 @@ export async function handleRequest(req: Request) {
       );
     }
 
-    // Process audio data
-    console.log('Processing audio data...');
-    const transcriptionResult = await processAudioData(audio);
-    
-    if (!transcriptionResult.text || transcriptionResult.text.trim() === '') {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'No speech detected. Please speak clearly and try again!'
-        }),
-        { 
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
-    console.log('Transcription result:', transcriptionResult);
-
-    // Validate user
+    // Validate user first
+    console.log('[Voice-to-Text] Validating user...');
     const user = await validateUser(req.headers);
     if (!user) {
+      console.error('[Voice-to-Text] User validation failed');
       return new Response(
         JSON.stringify({
           success: false,
@@ -56,11 +43,33 @@ export async function handleRequest(req: Request) {
         }
       );
     }
+    console.log('[Voice-to-Text] User validated successfully:', user.id);
+
+    // Process audio data
+    console.log('[Voice-to-Text] Processing audio data...');
+    const transcriptionResult = await processAudioData(audio);
+    
+    if (!transcriptionResult?.text || transcriptionResult.text.trim() === '') {
+      console.error('[Voice-to-Text] No transcription text generated');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'No speech detected. Please speak clearly and try again!'
+        }),
+        { 
+          status: 200, // Changed to 200 to prevent edge function error
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    console.log('[Voice-to-Text] Transcription successful:', transcriptionResult.text);
 
     // Save expense
     try {
+      console.log('[Voice-to-Text] Saving expense...');
       const expense = await saveExpense(user.id, transcriptionResult.text);
-      console.log('Expense saved:', expense);
+      console.log('[Voice-to-Text] Expense saved successfully:', expense);
       
       return new Response(
         JSON.stringify({
@@ -68,32 +77,33 @@ export async function handleRequest(req: Request) {
           expense: expense
         }),
         { 
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
     } catch (error) {
-      console.error('Error saving expense:', error);
+      console.error('[Voice-to-Text] Error saving expense:', error);
       return new Response(
         JSON.stringify({
           success: false,
           error: 'Please clearly state both the amount and category of your expense. For example: "Spent 20 dollars on lunch" or "Monthly gym membership 50 dollars".'
         }),
         { 
-          status: 400,
+          status: 200, // Changed to 200 to prevent edge function error
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
     }
 
   } catch (error) {
-    console.error('Edge function error:', error);
+    console.error('[Voice-to-Text] Edge function error:', error);
     return new Response(
       JSON.stringify({
         success: false,
-        error: 'Please clearly state both the amount and category of your expense. For example: "Spent 20 dollars on lunch" or "Monthly gym membership 50 dollars".'
+        error: 'An error occurred while processing your request. Please try again.'
       }),
       { 
-        status: 400,
+        status: 200, // Changed to 200 to prevent edge function error
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
