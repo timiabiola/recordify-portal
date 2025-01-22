@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { extractExpenseDetails } from "./utils/expenseExtraction.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -110,16 +111,16 @@ serve(async (req) => {
       );
     }
 
-    // Extract expense details
+    // Extract expense details using GPT
     console.log('Extracting expense details from:', transcriptionResult.text);
-    const expenses = await extractExpenseDetails(transcriptionResult.text);
-    console.log('Extracted expenses:', expenses);
+    const expenseDetails = await extractExpenseDetails(transcriptionResult.text);
+    console.log('Extracted expense details:', expenseDetails);
 
-    if (!expenses || expenses.length === 0) {
+    if (!expenseDetails) {
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'Please clearly state the amount and category of your expense. For example: "Spent 50 dollars on groceries" or "15.99 for Netflix subscription".'
+          error: 'Could not understand the expense details. Please try again with a clearer description including both amount and category.'
         }),
         { 
           status: 400,
@@ -128,22 +129,46 @@ serve(async (req) => {
       );
     }
 
-    // Save expenses
-    const savedExpenses = [];
-    for (const expense of expenses) {
-      try {
-        const savedExpense = await saveExpense(supabaseAdmin, user.id, expense, transcriptionResult.text);
-        savedExpenses.push(savedExpense);
-      } catch (error) {
-        console.error('Error saving expense:', error);
-      }
-    }
+    // Get category id
+    const { data: categoryData, error: categoryError } = await supabaseAdmin
+      .from('categories')
+      .select('id')
+      .eq('name', expenseDetails.category)
+      .single();
 
-    if (savedExpenses.length === 0) {
+    if (categoryError || !categoryData) {
+      console.error('Error finding category:', categoryError);
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'Failed to save expenses'
+          error: 'Invalid expense category. Please try again.'
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Save expense
+    const { data: expense, error: expenseError } = await supabaseAdmin
+      .from('expenses')
+      .insert({
+        user_id: user.id,
+        category_id: categoryData.id,
+        amount: expenseDetails.amount,
+        description: expenseDetails.description,
+        transcription: transcriptionResult.text
+      })
+      .select('*, categories(name)')
+      .single();
+
+    if (expenseError) {
+      console.error('Error saving expense:', expenseError);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Failed to save expense. Please try again.'
         }),
         { 
           status: 500,
@@ -155,7 +180,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        expenses: savedExpenses
+        expense: expense
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

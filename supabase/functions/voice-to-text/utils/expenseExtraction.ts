@@ -1,105 +1,98 @@
-import { checkRateLimit } from './rateLimiting.ts';
-import { parseOpenAIResponse } from './jsonParser.ts';
+import OpenAI from 'https://esm.sh/openai@4.20.1';
 
 export async function extractExpenseDetails(text: string) {
-  console.log('Starting expense extraction from text:', text);
-  
   try {
-    checkRateLimit();
-
-    const systemPrompt = `You are a helpful assistant that extracts expense information from text and returns it in pure JSON format. 
-Never include markdown formatting, code blocks, or backticks in your response. 
-Return only valid JSON that can be directly parsed.`;
-
-    const userPrompt = `Extract expense information from this text and return a JSON object with:
-- amount (number)
-- description (string)
-- category (string, one of: food, entertainment, transport, shopping, utilities, other)
-
-Text: "${text}"
-
-Remember to return ONLY the JSON object, no markdown or code blocks.`;
-
-    console.log('Sending request to OpenAI with model: gpt-4o-mini');
+    console.log('Starting expense extraction from text:', text);
     
-    const completion = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content: systemPrompt
-          },
-          {
-            role: "user",
-            content: userPrompt
-          }
-        ],
-        temperature: 0.1,
-      }),
+    const openai = new OpenAI({
+      apiKey: Deno.env.get('OPENAI_API_KEY')
     });
 
-    if (!completion.ok) {
-      const errorData = await completion.text();
-      console.error('OpenAI API error:', {
-        status: completion.status,
-        statusText: completion.statusText,
-        error: errorData
-      });
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: `You are a helpful assistant that extracts expense information from text.
+Extract the amount spent and categorize the expense into one of these categories exactly:
+- food
+- entertainment
+- transport
+- shopping
+- utilities
+- other
 
-      if (completion.status === 429) {
-        throw new Error('OpenAI rate limit reached. Please try again later.');
-      } else if (completion.status === 401) {
-        throw new Error('OpenAI API key is invalid or expired.');
-      }
-      
-      throw new Error(`OpenAI API error: ${errorData}`);
+Rules:
+1. Amount must be a positive number
+2. Remove any currency symbols
+3. Description should be clear and concise
+4. If amount or category is unclear, return null
+5. Category must be exactly one of the listed options, in lowercase
+
+Example inputs and outputs:
+"I spent fifty dollars at the grocery store"
+{"amount": 50, "description": "grocery shopping", "category": "food"}
+
+"Netflix subscription is 15.99"
+{"amount": 15.99, "description": "Netflix subscription", "category": "entertainment"}
+
+Return ONLY a JSON object with these exact fields:
+{
+  "amount": number,
+  "description": string,
+  "category": string
+}`
+        },
+        {
+          role: "user",
+          content: text
+        }
+      ],
+      temperature: 0
+    });
+
+    const response = completion.choices[0]?.message?.content;
+    if (!response) {
+      console.error('No response from OpenAI');
+      return null;
     }
 
-    let data;
-    try {
-      data = await completion.json();
-      console.log('OpenAI raw response:', JSON.stringify(data, null, 2));
-    } catch (jsonError) {
-      console.error('Failed to parse OpenAI API response:', jsonError);
-      throw new Error('Invalid JSON response from OpenAI API');
-    }
-
-    if (!data?.choices?.[0]?.message?.content) {
-      console.error('Invalid OpenAI response format:', data);
-      throw new Error('Invalid response format from OpenAI');
-    }
-
-    const response = data.choices[0].message.content;
-    console.log("OpenAI extracted content:", response);
+    console.log('OpenAI raw response:', response);
     
     try {
-      return parseOpenAIResponse(response);
+      const parsed = JSON.parse(response.trim());
+      console.log('Parsed expense details:', parsed);
+
+      // Validate the parsed data
+      if (!parsed || typeof parsed !== 'object') {
+        throw new Error('Invalid response format');
+      }
+
+      const amount = Number(parsed.amount);
+      if (isNaN(amount) || amount <= 0) {
+        throw new Error('Invalid amount');
+      }
+
+      if (!parsed.description || typeof parsed.description !== 'string') {
+        throw new Error('Invalid description');
+      }
+
+      const validCategories = ['food', 'entertainment', 'transport', 'shopping', 'utilities', 'other'];
+      if (!validCategories.includes(parsed.category)) {
+        throw new Error('Invalid category');
+      }
+
+      return {
+        amount,
+        description: parsed.description.trim(),
+        category: parsed.category
+      };
     } catch (parseError) {
-      console.error('Failed to parse expense details:', {
-        error: parseError,
-        rawResponse: response
-      });
-      throw new Error('Failed to parse expense details from OpenAI response: ' + parseError.message);
+      console.error('Failed to parse expense details:', parseError);
+      return null;
     }
   } catch (error) {
-    console.error('Error in extractExpenseDetails:', {
-      name: error.name,
-      message: error.message,
-      stack: error.stack
-    });
-
-    if (error.message.includes('rate limit')) {
-      throw new Error('OpenAI rate limit reached. Please try again later.');
-    } else if (error.message.includes('invalid')) {
-      throw new Error('OpenAI API key is invalid or expired.');
-    }
-    
-    throw error;
+    console.error('Error in extractExpenseDetails:', error);
+    return null;
   }
 }
