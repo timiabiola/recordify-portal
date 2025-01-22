@@ -15,11 +15,11 @@ type CategoryIconProps = {
 const getCategoryDescription = (categoryName: string) => {
   switch (categoryName) {
     case 'essentials':
-      return 'Essential expenses needed for life in North America: housing, utilities, groceries, car payments, etc.';
+      return 'Essential expenses needed for life: housing, utilities, groceries, transportation';
     case 'leisure':
-      return 'Discretionary spending for pleasure and entertainment - consumption rather than investment';
+      return 'Discretionary spending for pleasure and entertainment';
     case 'recurring_payments':
-      return 'Subscription-based expenses outside of regular essential bills to track recurring payment commitments';
+      return 'Subscription services, memberships, and regular bills';
     default:
       return '';
   }
