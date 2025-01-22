@@ -20,10 +20,10 @@ import {
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
-  AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
+  AlertDialogFooter,
 } from "@/components/ui/alert-dialog";
 
 type Expense = {
@@ -122,18 +122,20 @@ export const ExpensesTable = ({ expenses }: ExpensesTableProps) => {
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Expense</AlertDialogTitle>
+                        <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
                         <AlertDialogDescription>
                           Are you sure you want to delete this expense? This action cannot be undone.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel className="bg-gray-100 hover:bg-gray-200">
+                          No, Keep It
+                        </AlertDialogCancel>
                         <AlertDialogAction
                           onClick={() => handleDelete(expense.id)}
-                          className="bg-destructive hover:bg-destructive/90"
+                          className="bg-destructive hover:bg-destructive/90 text-white"
                         >
-                          Delete
+                          Yes, Delete It
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
