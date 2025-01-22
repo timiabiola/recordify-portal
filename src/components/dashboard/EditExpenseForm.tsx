@@ -42,10 +42,14 @@ export const EditExpenseForm = ({ expense }: EditExpenseFormProps) => {
 
   const mutation = useExpenseMutation(expense.id, () => navigate('/dashboard'));
 
+  const capitalizeFirstLetter = (str: string) => {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  };
+
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     console.log('Form submitted with values:', values);
     mutation.mutate({
-      description: values.description,
+      description: capitalizeFirstLetter(values.description),
       amount: Number(values.amount),
       category_id: values.category_id,
     });

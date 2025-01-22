@@ -18,12 +18,14 @@ type CategorySelectProps = {
   selectedCategory: string;
   categories?: Category[];
   onCategoryChange: (value: string) => void;
+  showAllOption?: boolean;
 };
 
 export const CategorySelect = ({
   selectedCategory,
   categories,
   onCategoryChange,
+  showAllOption = false,
 }: CategorySelectProps) => {
   const isMobile = useIsMobile();
 
@@ -43,6 +45,11 @@ export const CategorySelect = ({
         <SelectValue placeholder="Select category" />
       </SelectTrigger>
       <SelectContent>
+        {showAllOption && (
+          <SelectItem value="all" className="flex items-center gap-2">
+            <span>All Categories</span>
+          </SelectItem>
+        )}
         {categories?.map((category) => (
           <SelectItem key={category.id} value={category.id} className="flex items-center gap-2">
             <span className="flex items-center gap-2">

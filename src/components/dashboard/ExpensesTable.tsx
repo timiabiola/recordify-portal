@@ -37,6 +37,10 @@ export const ExpensesTable = ({ expenses }: ExpensesTableProps) => {
     navigate(`/edit-expense/${expenseId}`);
   };
 
+  const capitalizeFirstLetter = (str: string) => {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  };
+
   return (
     <div className="w-full overflow-auto">
       <Table>
@@ -56,7 +60,7 @@ export const ExpensesTable = ({ expenses }: ExpensesTableProps) => {
                 <div className="flex items-center gap-2">
                   {isMobile && <CategoryIcon categoryName={expense.categories.name} />}
                   <span className="truncate max-w-[150px] sm:max-w-none">
-                    {expense.description}
+                    {capitalizeFirstLetter(expense.description)}
                   </span>
                 </div>
               </TableCell>
