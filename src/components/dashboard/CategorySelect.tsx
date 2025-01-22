@@ -27,13 +27,22 @@ export const CategorySelect = ({
 }: CategorySelectProps) => {
   const isMobile = useIsMobile();
 
+  if (!categories) {
+    return (
+      <Select value={selectedCategory} onValueChange={onCategoryChange}>
+        <SelectTrigger className={`${isMobile ? 'w-full' : 'w-[180px]'}`}>
+          <SelectValue placeholder="Loading categories..." />
+        </SelectTrigger>
+      </Select>
+    );
+  }
+
   return (
     <Select value={selectedCategory} onValueChange={onCategoryChange}>
       <SelectTrigger className={`${isMobile ? 'w-full' : 'w-[180px]'}`}>
         <SelectValue placeholder="Select category" />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="all">All Categories</SelectItem>
         {categories?.map((category) => (
           <SelectItem key={category.id} value={category.id} className="flex items-center gap-2">
             <span className="flex items-center gap-2">

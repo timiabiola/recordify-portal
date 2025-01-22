@@ -8,7 +8,7 @@ import { CategorySelect } from "./CategorySelect";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 const formSchema = z.object({
   description: z.string().min(1, "Description is required"),
@@ -31,6 +31,24 @@ type EditExpenseFormProps = {
 export const EditExpenseForm = ({ expense }: EditExpenseFormProps) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  const { data: categories } = useQuery({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      console.log('Fetching categories');
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*');
+
+      if (error) {
+        console.error('Error fetching categories:', error);
+        throw error;
+      }
+
+      console.log('Fetched categories:', data);
+      return data;
+    },
+  });
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -118,6 +136,7 @@ export const EditExpenseForm = ({ expense }: EditExpenseFormProps) => {
                 <CategorySelect
                   selectedCategory={field.value}
                   onCategoryChange={field.onChange}
+                  categories={categories}
                 />
               </FormControl>
               <FormMessage />
