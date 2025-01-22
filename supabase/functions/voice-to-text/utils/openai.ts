@@ -1,5 +1,38 @@
 import OpenAI from 'https://esm.sh/openai@4.20.1';
 
+export async function transcribeAudio(audioBlob: Blob): Promise<string> {
+  try {
+    const openai = new OpenAI({
+      apiKey: Deno.env.get('OPENAI_API_KEY')
+    });
+
+    // Create form data for the audio file
+    const formData = new FormData();
+    formData.append('file', audioBlob, 'audio.webm');
+    formData.append('model', 'whisper-1');
+
+    // Make request to OpenAI's transcription API
+    const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${await response.text()}`);
+    }
+
+    const result = await response.json();
+    console.log('Transcription result:', result);
+    return result.text;
+  } catch (error) {
+    console.error('Error in transcribeAudio:', error);
+    throw error;
+  }
+}
+
 export async function extractExpenseDetails(text: string) {
   try {
     console.log('Extracting expense details from:', text);
