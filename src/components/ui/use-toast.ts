@@ -1,6 +1,6 @@
 import { useEffect, useReducer, useRef } from "react";
-import { reducer, TOAST_REMOVE_DELAY, toastTimeouts } from "./toast/toast-reducer";
-import type { ToastProps, ToastActionElement } from "./toast/toast-types";
+import { createToastReducer, TOAST_REMOVE_DELAY, toastTimeouts } from "./toast/toast-reducer";
+import type { ToastProps, ToastActionElement, Action } from "./toast/toast-types";
 
 const actionTypes = {
   ADD_TOAST: "ADD_TOAST",
@@ -18,64 +18,97 @@ function generateId() {
 
 type Toast = Omit<ToastProps, "id">;
 
-function dispatch(action: any) {
-  console.log("Dispatching toast action:", action);
-}
+let dispatchToast: ((action: Action) => void) | null = null;
 
 function useToast() {
-  const [state, innerDispatch] = useReducer(reducer, {
+  const reducer = useRef(createToastReducer((action) => {
+    if (dispatchToast) dispatchToast(action);
+  })).current;
+
+  const [state, dispatch] = useReducer(reducer, {
     toasts: [],
   });
 
   useEffect(() => {
-    dispatch = innerDispatch;
-  }, [innerDispatch]);
+    dispatchToast = dispatch;
+    return () => {
+      dispatchToast = null;
+    };
+  }, [dispatch]);
+
+  const toast = (props: Toast) => {
+    const id = generateId();
+
+    const update = (props: ToastProps) =>
+      dispatch({
+        type: "UPDATE_TOAST",
+        toast: props,
+        id,
+      });
+
+    const dismiss = () =>
+      dispatch({
+        type: "DISMISS_TOAST",
+        toastId: id,
+      });
+
+    dispatch({
+      type: "ADD_TOAST",
+      toast: {
+        ...props,
+        id,
+        open: true,
+        onOpenChange: (open: boolean) => {
+          if (!open) dismiss();
+        },
+      },
+    });
+
+    return {
+      id,
+      dismiss,
+      update,
+    };
+  };
 
   return {
     ...state,
     toast,
-    dismiss: (toastId?: string) => {
-      innerDispatch({
-        type: "DISMISS_TOAST",
-        toastId,
-      });
-    },
+    dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
   };
 }
 
-function toast(props: Toast) {
-  const id = generateId();
-
-  const update = (props: ToastProps) =>
-    dispatch({
-      type: "UPDATE_TOAST",
-      toast: props,
-      id,
-    });
-
-  const dismiss = () =>
-    dispatch({
-      type: "DISMISS_TOAST",
-      toastId: id,
-    });
-
-  dispatch({
-    type: "ADD_TOAST",
-    toast: {
-      ...props,
-      id,
-      open: true,
-      onOpenChange: (open: boolean) => {
-        if (!open) dismiss();
+export { useToast, type Toast };
+export const toast = (props: Toast) => {
+  if (dispatchToast) {
+    const id = generateId();
+    dispatchToast({
+      type: "ADD_TOAST",
+      toast: {
+        ...props,
+        id,
+        open: true,
+        onOpenChange: (open: boolean) => {
+          if (!open && dispatchToast) {
+            dispatchToast({ type: "DISMISS_TOAST", toastId: id });
+          }
+        },
       },
-    },
-  });
-
+    });
+    return {
+      id,
+      dismiss: () => dispatchToast?.({ type: "DISMISS_TOAST", toastId: id }),
+      update: (props: ToastProps) =>
+        dispatchToast?.({
+          type: "UPDATE_TOAST",
+          toast: props,
+          id,
+        }),
+    };
+  }
   return {
-    id,
-    dismiss,
-    update,
+    id: "",
+    dismiss: () => {},
+    update: () => {},
   };
-}
-
-export { useToast, toast };
+};
