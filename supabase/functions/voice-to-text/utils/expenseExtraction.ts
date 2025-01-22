@@ -10,19 +10,20 @@ export async function extractExpenseDetails(text: string) {
 
     console.log('Making OpenAI API request...');
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",  // Using the correct model name for faster, cheaper processing
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
           content: `You are a helpful assistant that extracts expense information from spoken text.
-Your task is to identify the amount spent and categorize the expense.
+Your task is to identify ALL expenses mentioned in the text and categorize them.
 
 Rules for extraction:
 1. Amount must be a positive number
 2. Remove any currency symbols or words (e.g., $, dollars, bucks)
 3. Category must be exactly one of: essentials, leisure, recurring_payments
 4. Description should be clear and specific
-5. If you can't confidently extract both amount and category, return null
+5. If you can't confidently extract both amount and category for an expense, exclude it
+6. Return ALL valid expenses found in the text as an array
 
 Categorization rules:
 - essentials: Basic living expenses like housing, utilities, groceries, transportation
@@ -30,20 +31,17 @@ Categorization rules:
 - recurring_payments: Subscription services, memberships, regular bills
 
 Example inputs and outputs:
-"I spent fifty dollars at the grocery store"
-{"amount": 50, "description": "grocery shopping", "category": "essentials"}
+"I spent fifty dollars at the grocery store and twenty on movies"
+[
+  {"amount": 50, "description": "grocery shopping", "category": "essentials"},
+  {"amount": 20, "description": "movies", "category": "leisure"}
+]
 
-"Netflix subscription is 15.99"
-{"amount": 15.99, "description": "Netflix subscription", "category": "recurring_payments"}
-
-"Went to the movies yesterday twenty dollars"
-{"amount": 20, "description": "movie tickets", "category": "leisure"}
-
-"Had lunch"
-null (missing amount)
-
-"Spent some money"
-null (missing amount and category)`
+"Netflix subscription is 15.99 and groceries were 100"
+[
+  {"amount": 15.99, "description": "Netflix subscription", "category": "recurring_payments"},
+  {"amount": 100, "description": "groceries", "category": "essentials"}
+]`
         },
         {
           role: "user",
@@ -65,40 +63,44 @@ null (missing amount and category)`
       const parsed = JSON.parse(response.trim());
       console.log('Parsed expense details:', parsed);
 
-      // Return null if parsing failed or response is explicitly null
-      if (!parsed) {
-        console.log('Parsed response is null');
+      // Ensure we have an array
+      if (!Array.isArray(parsed)) {
+        console.error('Invalid response format: not an array');
         return null;
       }
 
-      // Validate the parsed data
-      if (typeof parsed !== 'object') {
-        console.error('Invalid response format: not an object');
-        return null;
-      }
+      // Validate each expense
+      const validExpenses = parsed.filter(expense => {
+        if (!expense || typeof expense !== 'object') {
+          console.error('Invalid expense format:', expense);
+          return false;
+        }
 
-      const amount = Number(parsed.amount);
-      if (isNaN(amount) || amount <= 0) {
-        console.error('Invalid amount:', parsed.amount);
-        return null;
-      }
+        const amount = Number(expense.amount);
+        if (isNaN(amount) || amount <= 0) {
+          console.error('Invalid amount:', expense.amount);
+          return false;
+        }
 
-      if (!parsed.description || typeof parsed.description !== 'string') {
-        console.error('Invalid description');
-        return null;
-      }
+        if (!expense.description || typeof expense.description !== 'string') {
+          console.error('Invalid description');
+          return false;
+        }
 
-      const validCategories = ['essentials', 'leisure', 'recurring_payments'];
-      if (!validCategories.includes(parsed.category)) {
-        console.error('Invalid category:', parsed.category);
-        return null;
-      }
+        const validCategories = ['essentials', 'leisure', 'recurring_payments'];
+        if (!validCategories.includes(expense.category)) {
+          console.error('Invalid category:', expense.category);
+          return false;
+        }
 
-      return {
-        amount,
-        description: parsed.description.trim(),
-        category: parsed.category
-      };
+        // Normalize the expense
+        expense.amount = amount;
+        expense.description = expense.description.trim();
+        return true;
+      });
+
+      console.log('Validated expenses:', validExpenses);
+      return validExpenses;
     } catch (parseError) {
       console.error('Failed to parse expense details:', parseError);
       return null;
