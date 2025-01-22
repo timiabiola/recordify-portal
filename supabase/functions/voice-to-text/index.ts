@@ -56,6 +56,54 @@ serve(async (req) => {
       );
     }
 
+    // Process audio data
+    const base64Data = audio.replace(/^data:audio\/\w+;base64,/, '');
+    const binaryString = atob(base64Data);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    
+    // Create blob and transcribe
+    const blob = new Blob([bytes], { type: 'audio/webm;codecs=opus' });
+    console.log('Processing audio blob:', blob.size, 'bytes');
+    
+    // Send to OpenAI Whisper API
+    const formData = new FormData();
+    formData.append('file', blob, 'audio.webm');
+    formData.append('model', 'whisper-1');
+    formData.append('language', 'en');
+
+    const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('OpenAI API error:', errorText);
+      throw new Error(`OpenAI API error: ${errorText}`);
+    }
+
+    const transcriptionResult = await response.json();
+    console.log('Transcription result:', transcriptionResult);
+
+    if (!transcriptionResult.text || transcriptionResult.text.trim() === '') {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'No speech detected. Please speak clearly and try again!'
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
@@ -79,36 +127,9 @@ serve(async (req) => {
       );
     }
 
-    // Process audio data
-    const base64Data = audio.replace(/^data:audio\/\w+;base64,/, '');
-    const binaryString = atob(base64Data);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-    
-    // Create blob and transcribe
-    const blob = new Blob([bytes], { type: 'audio/webm' });
-    console.log('Transcribing audio...');
-    const text = await transcribeAudio(blob);
-    console.log('Transcription:', text);
-
-    if (!text || text.trim() === '') {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'No speech detected. Please speak clearly and try again!'
-        }),
-        { 
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
     // Extract expense details
-    console.log('Extracting expense details...');
-    const expenses = await extractExpenseDetails(text);
+    console.log('Extracting expense details from:', transcriptionResult.text);
+    const expenses = await extractExpenseDetails(transcriptionResult.text);
     console.log('Extracted expenses:', expenses);
 
     if (!expenses || expenses.length === 0) {
@@ -128,7 +149,7 @@ serve(async (req) => {
     const savedExpenses = [];
     for (const expense of expenses) {
       try {
-        const savedExpense = await saveExpense(supabaseAdmin, user.id, expense, text);
+        const savedExpense = await saveExpense(supabaseAdmin, user.id, expense, transcriptionResult.text);
         savedExpenses.push(savedExpense);
       } catch (error) {
         console.error('Error saving expense:', error);
