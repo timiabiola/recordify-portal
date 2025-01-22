@@ -2,6 +2,7 @@ import { TableCell, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
 import { ExpenseActions } from "./ExpenseActions";
 import { CategoryIcon } from "./CategoryIcon";
+import { formatCategoryName } from "@/lib/utils";
 
 type ExpenseRowProps = {
   expense: {
@@ -29,15 +30,15 @@ export const ExpenseRow = ({ expense, isMobile, onEdit, onDelete, onRestore }: E
             {expense.description}
           </span>
           {isMobile && (
-            <span className="text-xs text-[#7E69AB] capitalize">
-              {expense.categories.name}
+            <span className="text-xs text-[#7E69AB]">
+              {formatCategoryName(expense.categories.name)}
             </span>
           )}
         </div>
       </TableCell>
       {!isMobile && (
-        <TableCell className="text-[#7E69AB] capitalize">
-          {expense.categories.name}
+        <TableCell className="text-[#7E69AB]">
+          {formatCategoryName(expense.categories.name)}
         </TableCell>
       )}
       <TableCell className="text-right font-semibold text-[#ea384c]">
