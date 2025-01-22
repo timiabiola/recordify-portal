@@ -3,6 +3,11 @@ import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '@/integrations/supabase/client';
 
 const AuthForm = () => {
+  // Get the current origin, removing any trailing slash
+  const redirectTo = window.location.origin.replace(/\/$/, '');
+  
+  console.log('Auth redirect URL:', redirectTo);
+
   return (
     <Auth 
       supabaseClient={supabase}
@@ -18,7 +23,7 @@ const AuthForm = () => {
         },
       }}
       providers={[]}
-      redirectTo={window.location.origin}
+      redirectTo={redirectTo}
     />
   );
 };
