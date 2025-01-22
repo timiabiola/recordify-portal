@@ -1,7 +1,8 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Box } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { PieChartLabel } from "./PieChartLabel";
+import { EmptyExpensesChart } from "./EmptyExpensesChart";
 
 type ExpensesPieChartProps = {
   expenses: any[];
@@ -24,44 +25,11 @@ const COLORS = {
   recurring_payments: '#0EA5E9'
 };
 
-const RADIAN = Math.PI / 180;
-const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
-  const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-  const x = cx + radius * Math.cos(-midAngle * RADIAN);
-  const y = cy + radius * Math.sin(-midAngle * RADIAN);
-
-  return (
-    <text 
-      x={x} 
-      y={y} 
-      fill="white" 
-      textAnchor={x > cx ? 'start' : 'end'} 
-      dominantBaseline="central"
-      className="text-xs sm:text-sm"
-    >
-      {`${(percent * 100).toFixed(0)}%`}
-    </text>
-  );
-};
-
 export const ExpensesPieChart = ({ expenses, dateRange }: ExpensesPieChartProps) => {
   const isMobile = useIsMobile();
 
   if (!expenses || expenses.length === 0) {
-    return (
-      <Card>
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-base sm:text-lg">Expense Distribution</CardTitle>
-        </CardHeader>
-        <CardContent className="h-[200px] sm:h-[300px] flex flex-col items-center justify-center gap-4 text-muted-foreground">
-          <Box className="w-8 h-8 sm:w-12 sm:h-12 text-muted-foreground/50" />
-          <div className="text-center">
-            <p className="text-sm">No expenses found for this period</p>
-            <p className="text-xs sm:text-sm">Add some expenses to see your distribution</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return <EmptyExpensesChart dateRangeLabel={dateRange.label} />;
   }
 
   const data = expenses.reduce((acc: ExpenseData[], expense) => {
@@ -102,7 +70,7 @@ export const ExpensesPieChart = ({ expenses, dateRange }: ExpensesPieChartProps)
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={renderCustomizedLabel}
+                label={PieChartLabel}
                 outerRadius={isMobile ? 70 : 100}
                 fill="#8884d8"
                 dataKey="amount"
