@@ -33,7 +33,7 @@ export async function startRecording({ isRecording, setIsRecording, options }: S
     console.log('Audio track settings:', audioTrack.getSettings());
     
     const mediaRecorder = new MediaRecorder(stream, {
-      mimeType: 'audio/webm',
+      mimeType: 'audio/webm',  // Simplified MIME type
       ...options
     });
     
