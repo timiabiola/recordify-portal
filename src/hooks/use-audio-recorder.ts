@@ -81,6 +81,10 @@ export const useAudioRecorder = (isRecording: boolean, setIsRecording: (isRecord
 
   const startRecording = async () => {
     try {
+      // First check if permission is already granted
+      const permissionResult = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+      console.log('Current microphone permission status:', permissionResult.state);
+
       if (mediaRecorderRef.current) {
         console.log('Cleaning up existing MediaRecorder...');
         mediaRecorderRef.current.stream.getTracks().forEach(track => {
@@ -88,43 +92,93 @@ export const useAudioRecorder = (isRecording: boolean, setIsRecording: (isRecord
         });
       }
       
+      // Request microphone access with specific constraints for mobile
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
-          sampleRate: 16000
+          sampleRate: { ideal: 16000 },
+          channelCount: { ideal: 1 }
         }
       });
 
-      const options = {
-        mimeType: 'audio/webm;codecs=opus',
-        audioBitsPerSecond: 128000
-      };
+      // Verify that we have an active audio track
+      const audioTrack = stream.getAudioTracks()[0];
+      if (!audioTrack || !audioTrack.enabled) {
+        throw new Error('No active audio track available');
+      }
+      
+      console.log('Audio track settings:', audioTrack.getSettings());
 
-      if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-        console.error('Mime type not supported:', options.mimeType);
-        throw new Error('Audio format not supported by your browser');
+      // Try different MIME types for better mobile compatibility
+      const mimeTypes = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/ogg;codecs=opus',
+        'audio/mp4'
+      ];
+
+      let selectedMimeType = '';
+      for (const type of mimeTypes) {
+        if (MediaRecorder.isTypeSupported(type)) {
+          selectedMimeType = type;
+          break;
+        }
       }
 
-      const recorder = new MediaRecorder(stream, options);
+      if (!selectedMimeType) {
+        console.warn('No preferred MIME types supported, using default');
+      }
+
+      console.log('Selected MIME type:', selectedMimeType);
+
+      const recorder = new MediaRecorder(stream, {
+        mimeType: selectedMimeType,
+        audioBitsPerSecond: 128000
+      });
+      
       mediaRecorderRef.current = recorder;
       
       const chunks: Blob[] = [];
       recorder.ondataavailable = (e) => handleDataAvailable(chunks, e);
-      recorder.onstop = () => handleRecordingStop(chunks, options.mimeType);
+      recorder.onstop = () => handleRecordingStop(chunks, selectedMimeType || 'audio/webm');
 
       recorder.start(1000);
-      console.log('Started recording with options:', options);
+      console.log('Started recording with MIME type:', selectedMimeType);
       setIsRecording(true);
     } catch (error) {
       console.error('Recording error:', error);
       setIsRecording(false);
-      toast({
-        variant: "destructive",
-        title: "Recording failed",
-        description: 'Please check your microphone permissions.'
-      });
+      
+      // Provide more specific error messages for common mobile issues
+      if (error instanceof DOMException) {
+        if (error.name === 'NotAllowedError') {
+          toast({
+            variant: "destructive",
+            title: "Microphone access denied",
+            description: 'Please allow microphone access in your browser settings.'
+          });
+        } else if (error.name === 'NotFoundError') {
+          toast({
+            variant: "destructive",
+            title: "No microphone found",
+            description: 'Please ensure your device has a working microphone.'
+          });
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Recording failed",
+            description: `${error.name}: ${error.message}`
+          });
+        }
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Recording failed",
+          description: 'Please check your microphone permissions.'
+        });
+      }
     }
   };
 
