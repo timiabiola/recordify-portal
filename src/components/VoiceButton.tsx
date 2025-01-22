@@ -12,11 +12,17 @@ export const VoiceButton: React.FC<VoiceButtonProps> = ({ isRecording, setIsReco
   const isMobile = useIsMobile();
   const { startRecording, stopRecording } = useAudioRecorder(isRecording, setIsRecording);
 
-  const handleClick = () => {
-    if (!isRecording) {
-      startRecording();
-    } else {
-      stopRecording();
+  const handleClick = async () => {
+    try {
+      console.log('[VoiceButton] Handle click triggered', { isRecording, isMobile });
+      if (!isRecording) {
+        await startRecording();
+      } else {
+        await stopRecording();
+      }
+    } catch (error) {
+      console.error('[VoiceButton] Error handling click:', error);
+      setIsRecording(false);
     }
   };
 
@@ -32,7 +38,12 @@ export const VoiceButton: React.FC<VoiceButtonProps> = ({ isRecording, setIsReco
         </div>
       )}
 
-      <div onClick={handleClick}>
+      <div 
+        onClick={handleClick}
+        role="button"
+        tabIndex={0}
+        aria-label={isRecording ? "Stop recording" : "Start recording"}
+      >
         <RecordingAnimation isRecording={isRecording} isMobile={isMobile} />
       </div>
       
