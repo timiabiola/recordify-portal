@@ -9,25 +9,19 @@ export async function extractExpenseDetails(text: string) {
     });
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4o",
       messages: [
         {
           role: "system",
-          content: `You are a helpful assistant that extracts expense information from text.
-Extract the amount spent and categorize the expense into one of these categories exactly:
-- food
-- entertainment
-- transport
-- shopping
-- utilities
-- other
+          content: `You are a helpful assistant that extracts expense information from spoken text.
+Your task is to identify the amount spent and categorize the expense.
 
-Rules:
+Rules for extraction:
 1. Amount must be a positive number
-2. Remove any currency symbols
-3. Description should be clear and concise
-4. If amount or category is unclear, return null
-5. Category must be exactly one of the listed options, in lowercase
+2. Remove any currency symbols or words (e.g., $, dollars, bucks)
+3. Category must be exactly one of: food, entertainment, transport, shopping, utilities, other
+4. Description should be clear and specific
+5. If you can't confidently extract both amount and category, return null
 
 Example inputs and outputs:
 "I spent fifty dollars at the grocery store"
@@ -36,12 +30,14 @@ Example inputs and outputs:
 "Netflix subscription is 15.99"
 {"amount": 15.99, "description": "Netflix subscription", "category": "entertainment"}
 
-Return ONLY a JSON object with these exact fields:
-{
-  "amount": number,
-  "description": string,
-  "category": string
-}`
+"Went to the movies yesterday twenty dollars"
+{"amount": 20, "description": "movie tickets", "category": "entertainment"}
+
+"Had lunch"
+null (missing amount)
+
+"Spent some money"
+null (missing amount and category)`
         },
         {
           role: "user",
@@ -63,23 +59,33 @@ Return ONLY a JSON object with these exact fields:
       const parsed = JSON.parse(response.trim());
       console.log('Parsed expense details:', parsed);
 
+      // Return null if parsing failed or response is explicitly null
+      if (!parsed) {
+        console.log('Parsed response is null');
+        return null;
+      }
+
       // Validate the parsed data
-      if (!parsed || typeof parsed !== 'object') {
-        throw new Error('Invalid response format');
+      if (typeof parsed !== 'object') {
+        console.error('Invalid response format: not an object');
+        return null;
       }
 
       const amount = Number(parsed.amount);
       if (isNaN(amount) || amount <= 0) {
-        throw new Error('Invalid amount');
+        console.error('Invalid amount:', parsed.amount);
+        return null;
       }
 
       if (!parsed.description || typeof parsed.description !== 'string') {
-        throw new Error('Invalid description');
+        console.error('Invalid description');
+        return null;
       }
 
       const validCategories = ['food', 'entertainment', 'transport', 'shopping', 'utilities', 'other'];
       if (!validCategories.includes(parsed.category)) {
-        throw new Error('Invalid category');
+        console.error('Invalid category:', parsed.category);
+        return null;
       }
 
       return {
