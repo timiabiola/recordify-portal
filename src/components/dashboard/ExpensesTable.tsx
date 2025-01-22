@@ -16,6 +16,7 @@ type Expense = {
   description: string;
   amount: number;
   created_at: string;
+  archived: boolean;
   categories: {
     name: string;
   };
@@ -23,9 +24,10 @@ type Expense = {
 
 type ExpensesTableProps = {
   expenses?: Expense[];
+  showRestore?: boolean;
 };
 
-export const ExpensesTable = ({ expenses }: ExpensesTableProps) => {
+export const ExpensesTable = ({ expenses, showRestore }: ExpensesTableProps) => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const deleteExpense = useDeleteExpense();
@@ -37,7 +39,12 @@ export const ExpensesTable = ({ expenses }: ExpensesTableProps) => {
 
   const handleDelete = (expenseId: string) => {
     console.log('Deleting expense:', expenseId);
-    deleteExpense.mutate(expenseId);
+    deleteExpense.mutate({ id: expenseId, archive: true });
+  };
+
+  const handleRestore = (expenseId: string) => {
+    console.log('Restoring expense:', expenseId);
+    deleteExpense.mutate({ id: expenseId, archive: false });
   };
 
   return (
@@ -60,6 +67,7 @@ export const ExpensesTable = ({ expenses }: ExpensesTableProps) => {
               isMobile={isMobile}
               onEdit={handleEdit}
               onDelete={handleDelete}
+              onRestore={showRestore ? handleRestore : undefined}
             />
           ))}
           {(!expenses || expenses.length === 0) && (

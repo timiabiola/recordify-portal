@@ -1,60 +1,72 @@
-import { Button } from "@/components/ui/button";
-import { Pencil, Trash2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
+  AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-  AlertDialogFooter,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Pencil, Trash2, RotateCcw } from "lucide-react";
 
 type ExpenseActionsProps = {
   expenseId: string;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
+  onRestore?: (id: string) => void;
 };
 
-export const ExpenseActions = ({ expenseId, onEdit, onDelete }: ExpenseActionsProps) => {
+export const ExpenseActions = ({
+  expenseId,
+  onEdit,
+  onDelete,
+  onRestore,
+}: ExpenseActionsProps) => {
+  if (onRestore) {
+    return (
+      <div className="flex justify-end">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => onRestore(expenseId)}
+          className="h-8 w-8"
+        >
+          <RotateCcw className="h-4 w-4" />
+        </Button>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex items-center justify-end gap-1">
+    <div className="flex justify-end gap-2">
       <Button
         variant="ghost"
         size="icon"
-        className="h-8 w-8"
         onClick={() => onEdit(expenseId)}
+        className="h-8 w-8"
       >
         <Pencil className="h-4 w-4" />
       </Button>
       <AlertDialog>
         <AlertDialogTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-destructive hover:text-destructive"
-          >
+          <Button variant="ghost" size="icon" className="h-8 w-8">
             <Trash2 className="h-4 w-4" />
           </Button>
         </AlertDialogTrigger>
-        <AlertDialogContent className="w-[95%] max-w-md mx-auto">
+        <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this expense? This action cannot be undone.
+              This expense will be moved to the archive. You can restore it later if needed.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col-reverse sm:flex-row gap-2">
-            <AlertDialogCancel className="bg-gray-100 hover:bg-gray-200 mt-0">
-              No, Keep It
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => onDelete(expenseId)}
-              className="bg-destructive hover:bg-destructive/90 text-white"
-            >
-              Yes, Delete It
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => onDelete(expenseId)}>
+              Archive
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

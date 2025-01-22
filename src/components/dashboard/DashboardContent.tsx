@@ -3,9 +3,10 @@ import { ExpensesTable } from "./ExpensesTable";
 import { CategorySelect } from "./CategorySelect";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, Archive } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/components/ui/use-toast";
+import { useState } from "react";
 
 type DashboardContentProps = {
   expenses?: any[];
@@ -30,6 +31,10 @@ export const DashboardContent = ({
 }: DashboardContentProps) => {
   const isMobile = useIsMobile();
   const { toast } = useToast();
+  const [showArchived, setShowArchived] = useState(false);
+
+  const activeExpenses = expenses?.filter(expense => !expense.archived) || [];
+  const archivedExpenses = expenses?.filter(expense => expense.archived) || [];
 
   const handleExport = () => {
     if (!expenses || expenses.length === 0) {
@@ -78,7 +83,7 @@ export const DashboardContent = ({
     <div className="space-y-4 sm:space-y-6 w-full">
       <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
         <ExpensesPieChart 
-          expenses={expenses} 
+          expenses={activeExpenses} 
           selectedMonth={selectedMonth} 
           dateRange={dateRange} 
         />
@@ -109,10 +114,36 @@ export const DashboardContent = ({
         </div>
         <div className="overflow-x-auto -mx-4 sm:mx-0">
           <div className="min-w-full inline-block align-middle">
-            <ExpensesTable expenses={expenses} />
+            <ExpensesTable expenses={activeExpenses} />
           </div>
         </div>
       </div>
+
+      {archivedExpenses.length > 0 && (
+        <div className="bg-white/50 rounded-lg shadow-sm p-4 sm:p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Archive className="h-4 w-4 text-muted-foreground" />
+              <h2 className="text-lg font-semibold text-muted-foreground">Archived Expenses</h2>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowArchived(!showArchived)}
+            >
+              {showArchived ? "Hide" : "Show"}
+            </Button>
+          </div>
+          
+          {showArchived && (
+            <div className="overflow-x-auto -mx-4 sm:mx-0">
+              <div className="min-w-full inline-block align-middle">
+                <ExpensesTable expenses={archivedExpenses} showRestore />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

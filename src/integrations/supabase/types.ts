@@ -30,6 +30,7 @@ export type Database = {
       expenses: {
         Row: {
           amount: number
+          archived: boolean | null
           category_id: string
           created_at: string
           description: string
@@ -39,6 +40,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          archived?: boolean | null
           category_id: string
           created_at?: string
           description: string
@@ -48,6 +50,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          archived?: boolean | null
           category_id?: string
           created_at?: string
           description?: string

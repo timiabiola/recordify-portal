@@ -1,6 +1,4 @@
 import { TableCell, TableRow } from "@/components/ui/table";
-import { CategoryIcon } from "./CategoryIcon";
-import { formatCategoryName } from "@/lib/utils";
 import { format } from "date-fns";
 import { ExpenseActions } from "./ExpenseActions";
 
@@ -17,41 +15,35 @@ type ExpenseRowProps = {
   isMobile: boolean;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
+  onRestore?: (id: string) => void;
 };
 
-export const ExpenseRow = ({ expense, isMobile, onEdit, onDelete }: ExpenseRowProps) => {
-  const formatDescription = (description: string) => {
-    return description.charAt(0).toUpperCase() + 
-           description.slice(1).trim().split(/\s+/).slice(0, 2).join(' ');
-  };
-
+export const ExpenseRow = ({ expense, isMobile, onEdit, onDelete, onRestore }: ExpenseRowProps) => {
   return (
-    <TableRow>
-      <TableCell>
+    <TableRow key={expense.id}>
+      <TableCell className="font-medium">
         <div className="flex items-center gap-2">
-          {isMobile && <CategoryIcon categoryName={expense.categories.name} />}
-          <span className="truncate max-w-[150px] sm:max-w-none">
-            {formatDescription(expense.description)}
-          </span>
+          <span className="truncate max-w-[200px]">{expense.description}</span>
+          {isMobile && (
+            <span className="text-xs text-muted-foreground">
+              {expense.categories.name}
+            </span>
+          )}
         </div>
       </TableCell>
-      {!isMobile && (
-        <TableCell className="flex items-center gap-2">
-          <CategoryIcon categoryName={expense.categories.name} />
-          {formatCategoryName(expense.categories.name)}
-        </TableCell>
-      )}
-      <TableCell className="text-right text-destructive font-medium">
+      {!isMobile && <TableCell>{expense.categories.name}</TableCell>}
+      <TableCell className="text-right">
         ${Number(expense.amount).toFixed(2)}
       </TableCell>
-      <TableCell className="text-right text-muted-foreground">
-        {format(new Date(expense.created_at), isMobile ? 'MM/dd/yy' : 'MMM dd, yyyy')}
+      <TableCell className="text-right">
+        {format(new Date(expense.created_at), isMobile ? "MM/dd" : "MM/dd/yyyy")}
       </TableCell>
       <TableCell>
         <ExpenseActions
           expenseId={expense.id}
           onEdit={onEdit}
           onDelete={onDelete}
+          onRestore={onRestore}
         />
       </TableCell>
     </TableRow>
