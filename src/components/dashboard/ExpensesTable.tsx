@@ -10,9 +10,21 @@ import { CategoryIcon } from "./CategoryIcon";
 import { formatCategoryName } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { format } from "date-fns";
-import { Pencil } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { useDeleteExpense } from "@/hooks/use-delete-expense";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 type Expense = {
   id: string;
@@ -31,10 +43,16 @@ type ExpensesTableProps = {
 export const ExpensesTable = ({ expenses }: ExpensesTableProps) => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const deleteExpense = useDeleteExpense();
 
   const handleEdit = (expenseId: string) => {
     console.log('Navigating to edit expense:', expenseId);
     navigate(`/edit-expense/${expenseId}`);
+  };
+
+  const handleDelete = (expenseId: string) => {
+    console.log('Deleting expense:', expenseId);
+    deleteExpense.mutate(expenseId);
   };
 
   const capitalizeFirstLetter = (str: string) => {
@@ -56,7 +74,7 @@ export const ExpensesTable = ({ expenses }: ExpensesTableProps) => {
             {!isMobile && <TableHead>Category</TableHead>}
             <TableHead className="text-right">Amount</TableHead>
             <TableHead className="text-right">{isMobile ? 'Date' : 'Created At'}</TableHead>
-            <TableHead className="w-[50px]"></TableHead>
+            <TableHead className="w-[100px]"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -83,14 +101,44 @@ export const ExpensesTable = ({ expenses }: ExpensesTableProps) => {
                 {format(new Date(expense.created_at), isMobile ? 'MM/dd/yy' : 'MMM dd, yyyy')}
               </TableCell>
               <TableCell>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => handleEdit(expense.id)}
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center justify-end gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => handleEdit(expense.id)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Expense</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete this expense? This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleDelete(expense.id)}
+                          className="bg-destructive hover:bg-destructive/90"
+                        >
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
               </TableCell>
             </TableRow>
           ))}
