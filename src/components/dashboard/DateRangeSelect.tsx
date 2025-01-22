@@ -30,7 +30,11 @@ export const DateRangeSelect = ({
         onValueChange={onDateRangeTypeChange}
       >
         <SelectTrigger className="w-[140px]">
-          <SelectValue placeholder="Select range" />
+          <SelectValue>
+            {dateRangeType === 'monthly' ? 'Monthly' : 
+             dateRangeType === 'ytd' ? 'Year to Date' : 
+             'Last 12 Months'}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="monthly">Monthly</SelectItem>
@@ -45,7 +49,9 @@ export const DateRangeSelect = ({
           onValueChange={onMonthChange}
         >
           <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Select month" />
+            <SelectValue>
+              {format(selectedMonth, 'MMMM yyyy')}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {last12Months.map((month) => (
