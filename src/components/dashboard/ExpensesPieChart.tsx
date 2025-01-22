@@ -3,6 +3,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Box } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
+type ExpensesPieChartProps = {
+  expenses: any[];
+  selectedMonth: Date;
+  dateRange: {
+    start: Date;
+    end: Date;
+    label: string;
+  };
+};
+
 type ExpenseData = {
   category: string;
   amount: number;
