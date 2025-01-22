@@ -28,16 +28,6 @@ export const VoiceButton: React.FC<VoiceButtonProps> = ({ isRecording, setIsReco
 
   return (
     <div className="relative flex flex-col items-center">
-      {!isMobile && (
-        <div className={`absolute -top-12 transition-opacity duration-300 ${
-          isRecording ? 'opacity-0' : 'opacity-100'
-        }`}>
-          <p className="text-sm text-muted-foreground bg-background/90 px-4 py-2 rounded-full shadow-sm">
-            Tap to record your expense
-          </p>
-        </div>
-      )}
-
       <div 
         onClick={handleClick}
         role="button"
