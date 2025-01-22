@@ -8,12 +8,28 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState } from "react";
-import { format } from "date-fns";
+import { format, subMonths, startOfMonth, endOfMonth } from "date-fns";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const Dashboard = () => {
   const isMobile = useIsMobile();
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const currentMonth = format(new Date(), 'MMMM yyyy');
+  const [selectedMonth, setSelectedMonth] = useState(new Date());
+
+  // Generate last 12 months for the dropdown
+  const last12Months = Array.from({ length: 12 }, (_, i) => {
+    const date = subMonths(new Date(), i);
+    return {
+      value: date.toISOString(),
+      label: format(date, 'MMMM yyyy')
+    };
+  });
 
   const { data: categories } = useQuery({
     queryKey: ["categories"],
@@ -33,9 +49,9 @@ const Dashboard = () => {
   });
 
   const { data: expenses } = useQuery({
-    queryKey: ["expenses", selectedCategory],
+    queryKey: ["expenses", selectedCategory, selectedMonth],
     queryFn: async () => {
-      console.log("Fetching expenses with category filter:", selectedCategory);
+      console.log("Fetching expenses with filters:", { selectedCategory, selectedMonth });
       let query = supabase
         .from("expenses")
         .select(`
@@ -44,6 +60,8 @@ const Dashboard = () => {
             name
           )
         `)
+        .gte('created_at', startOfMonth(selectedMonth).toISOString())
+        .lte('created_at', endOfMonth(selectedMonth).toISOString())
         .order("created_at", { ascending: false });
 
       if (selectedCategory !== "all") {
@@ -69,14 +87,29 @@ const Dashboard = () => {
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
-        <div>
+        <div className="flex-1">
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Monthly Budget</h1>
-          <p className="text-muted-foreground">{currentMonth}</p>
+          <p className="text-muted-foreground">{format(selectedMonth, 'MMMM yyyy')}</p>
         </div>
+        <Select
+          value={selectedMonth.toISOString()}
+          onValueChange={(value) => setSelectedMonth(new Date(value))}
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Select month" />
+          </SelectTrigger>
+          <SelectContent>
+            {last12Months.map((month) => (
+              <SelectItem key={month.value} value={month.value}>
+                {month.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="space-y-4 sm:space-y-6">
-        <ExpensesPieChart expenses={expenses} />
+        <ExpensesPieChart expenses={expenses} selectedMonth={selectedMonth} />
         
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

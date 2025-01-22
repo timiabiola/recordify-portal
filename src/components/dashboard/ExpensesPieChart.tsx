@@ -40,9 +40,10 @@ type ExpensesPieChartProps = {
     amount: number;
     created_at: string;
   }[];
+  selectedMonth: Date;
 };
 
-export const ExpensesPieChart = ({ expenses }: ExpensesPieChartProps) => {
+export const ExpensesPieChart = ({ expenses, selectedMonth }: ExpensesPieChartProps) => {
   if (!expenses || expenses.length === 0) {
     return (
       <Card>
@@ -56,10 +57,9 @@ export const ExpensesPieChart = ({ expenses }: ExpensesPieChartProps) => {
     );
   }
 
-  // Filter expenses for the current month
-  const currentDate = new Date();
-  const monthStart = startOfMonth(currentDate);
-  const monthEnd = endOfMonth(currentDate);
+  // Filter expenses for the selected month
+  const monthStart = startOfMonth(selectedMonth);
+  const monthEnd = endOfMonth(selectedMonth);
 
   const currentMonthExpenses = expenses.filter(expense => {
     const expenseDate = new Date(expense.created_at);
