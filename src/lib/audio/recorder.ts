@@ -1,20 +1,26 @@
-import { SUPPORTED_MIME_TYPES } from './config';
+import { AUDIO_CONSTRAINTS, RECORDER_OPTIONS, AUDIO_FORMAT } from "./config";
+import { toast } from "sonner";
 
-export const getSupportedMimeType = (): string => {
-  for (const type of SUPPORTED_MIME_TYPES) {
-    if (MediaRecorder.isTypeSupported(type)) {
-      return type;
+export const initializeRecorder = async () => {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: AUDIO_CONSTRAINTS });
+    const audioTrack = stream.getAudioTracks()[0];
+    
+    if (!audioTrack || !audioTrack.enabled) {
+      throw new Error('No active audio track available');
     }
-  }
-  console.warn('No preferred MIME types supported, using default');
-  return '';
-};
+    
+    console.log('Audio track settings:', audioTrack.getSettings());
 
-export const validateAudioTrack = (stream: MediaStream) => {
-  const audioTrack = stream.getAudioTracks()[0];
-  if (!audioTrack || !audioTrack.enabled) {
-    throw new Error('No active audio track available');
+    const recorder = new MediaRecorder(stream, {
+      ...RECORDER_OPTIONS,
+      mimeType: AUDIO_FORMAT.type
+    });
+
+    return { recorder, stream };
+  } catch (error) {
+    console.error('Error initializing recorder:', error);
+    toast.error('Failed to initialize audio recording');
+    throw error;
   }
-  console.log('Audio track settings:', audioTrack.getSettings());
-  return audioTrack;
 };

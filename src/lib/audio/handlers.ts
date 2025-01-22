@@ -1,46 +1,65 @@
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
-import type { RecordingHandlers } from './types';
+import { handleEmptyRecordingError, handleShortRecordingError } from "./errorHandling";
+import { AUDIO_FORMAT } from "./config";
 
-export const createRecordingHandlers = (): RecordingHandlers => ({
-  handleDataAvailable: (chunks: Blob[], event: BlobEvent) => {
+export const createRecordingHandlers = () => {
+  const handleDataAvailable = (chunks: Blob[], event: BlobEvent) => {
     if (event.data.size > 0) {
       chunks.push(event.data);
     }
-  },
+  };
 
-  handleRecordingStop: async (chunks: Blob[], mimeType: string) => {
+  const handleRecordingStop = async (chunks: Blob[], mimeType: string) => {
     try {
-      const audioBlob = new Blob(chunks, { type: mimeType });
-      console.log('Recording stopped, blob size:', audioBlob.size);
-      
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.error('No authenticated user found');
+      if (chunks.length === 0) {
+        handleEmptyRecordingError();
         return;
       }
 
-      const formData = new FormData();
-      formData.append('audio', audioBlob);
-
-      const response = await fetch('/api/voice-to-text', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      const audioBlob = new Blob(chunks, { type: AUDIO_FORMAT.type });
+      console.log('Audio blob created:', audioBlob.size, 'bytes');
+      
+      if (audioBlob.size < 100) {
+        handleShortRecordingError();
+        return;
       }
 
-      const result = await response.json();
-      console.log('Voice processing result:', result);
+      // Convert to base64 and send to server
+      const reader = new FileReader();
+      reader.readAsDataURL(audioBlob);
+      
+      reader.onloadend = async () => {
+        const base64Audio = reader.result as string;
+        const audioData = base64Audio.split(',')[1];
+        
+        try {
+          const response = await fetch('/api/voice-to-text', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ audio: audioData })
+          });
 
-      if (!result.success) {
-        toast.error(result.error || 'Failed to process voice recording');
-      }
+          if (!response.ok) {
+            throw new Error('Failed to process audio');
+          }
+
+          const data = await response.json();
+          console.log('Server response:', data);
+          
+          toast.success('Recording processed successfully');
+        } catch (error) {
+          console.error('Error processing audio:', error);
+          toast.error('Failed to process recording');
+        }
+      };
     } catch (error) {
-      console.error('Error processing recording:', error);
-      toast.error('Failed to process your recording');
+      console.error('Error in handleRecordingStop:', error);
+      toast.error('Error processing recording');
     }
-  }
-});
+  };
+
+  return {
+    handleDataAvailable,
+    handleRecordingStop
+  };
+};
