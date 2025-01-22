@@ -10,45 +10,38 @@ export async function extractExpenseDetails(text: string) {
 
     console.log('Making OpenAI API request...');
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4",
       messages: [
         {
           role: "system",
           content: `You are a helpful assistant that extracts expense information from spoken text.
-Your task is to identify ALL expenses mentioned in the text and categorize them.
+Extract the amount and category from the expense description and return ONLY a JSON array containing objects with this exact structure, nothing else:
+{
+  "amount": number,
+  "description": string,
+  "category": string (must be exactly one of: essentials, leisure, recurring_payments)
+}
 
-Rules for extraction:
+Rules:
 1. Amount must be a positive number
-2. Remove any currency symbols or words (e.g., $, dollars, bucks)
+2. Remove any currency symbols
 3. Category must be exactly one of: essentials, leisure, recurring_payments
-4. Description should be clear and specific
-5. If you can't confidently extract both amount and category for an expense, exclude it
-6. Return ALL valid expenses found in the text as an array
+4. Description should be clear and concise
+5. Return ONLY the JSON array, no other text
 
-Categorization rules:
-- essentials: Basic living expenses like housing, utilities, groceries, transportation
-- leisure: Entertainment, dining out, hobbies, non-essential shopping
-- recurring_payments: Subscription services, memberships, regular bills
+Example input: "I spent fifty dollars at the grocery store"
+Example output: [{"amount": 50, "description": "grocery shopping", "category": "essentials"}]
 
-Example inputs and outputs:
-"I spent fifty dollars at the grocery store and twenty on movies"
-[
-  {"amount": 50, "description": "grocery shopping", "category": "essentials"},
-  {"amount": 20, "description": "movies", "category": "leisure"}
-]
-
-"Netflix subscription is 15.99 and groceries were 100"
-[
-  {"amount": 15.99, "description": "Netflix subscription", "category": "recurring_payments"},
-  {"amount": 100, "description": "groceries", "category": "essentials"}
-]`
+Example input: "Netflix subscription is 15.99"
+Example output: [{"amount": 15.99, "description": "Netflix subscription", "category": "recurring_payments"}]`
         },
         {
           role: "user",
           content: text
         }
       ],
-      temperature: 0
+      temperature: 0,
+      response_format: { type: "json_object" } // Force JSON response
     });
 
     const response = completion.choices[0]?.message?.content;
@@ -64,13 +57,10 @@ Example inputs and outputs:
       console.log('Parsed expense details:', parsed);
 
       // Ensure we have an array
-      if (!Array.isArray(parsed)) {
-        console.error('Invalid response format: not an array');
-        return null;
-      }
+      const expensesArray = Array.isArray(parsed) ? parsed : [parsed];
 
       // Validate each expense
-      const validExpenses = parsed.filter(expense => {
+      const validExpenses = expensesArray.filter(expense => {
         if (!expense || typeof expense !== 'object') {
           console.error('Invalid expense format:', expense);
           return false;
@@ -99,10 +89,15 @@ Example inputs and outputs:
         return true;
       });
 
+      if (validExpenses.length === 0) {
+        console.error('No valid expenses found in response');
+        return null;
+      }
+
       console.log('Validated expenses:', validExpenses);
       return validExpenses;
     } catch (parseError) {
-      console.error('Failed to parse expense details:', parseError);
+      console.error('Failed to parse expense details:', parseError, 'Raw response:', response);
       return null;
     }
   } catch (error) {
