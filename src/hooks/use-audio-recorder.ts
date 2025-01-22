@@ -55,12 +55,19 @@ export const useAudioRecorder = (
           size: e.data.size,
           type: e.data.type
         });
-        handlers.handleDataAvailable(recorderState.current.chunks, e);
+        if (e.data.size > 0) {
+          recorderState.current.chunks.push(e.data);
+        }
       };
 
       recorder.onstop = async () => {
-        console.log('[Audio Recorder] Recording stopped');
-        await handlers.handleRecordingStop(recorderState.current.chunks, recorder.mimeType);
+        console.log('[Audio Recorder] Recording stopped, processing chunks:', recorderState.current.chunks.length);
+        if (recorderState.current.chunks.length > 0) {
+          await handlers.handleRecordingStop(recorderState.current.chunks, recorder.mimeType);
+        } else {
+          console.error('[Audio Recorder] No audio data recorded');
+          toast.error('No audio data recorded. Please try again.');
+        }
         cleanupRecorder();
       };
 
@@ -72,7 +79,7 @@ export const useAudioRecorder = (
       };
 
       recorderState.current.mediaRecorder = recorder;
-      recorder.start(isMobile ? 500 : 1000);
+      recorder.start(1000); // Use consistent chunk size for all platforms
       setIsRecording(true);
 
     } catch (error) {
