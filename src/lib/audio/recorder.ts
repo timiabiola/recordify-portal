@@ -1,13 +1,23 @@
 import { AUDIO_CONSTRAINTS, RECORDER_OPTIONS } from "./config";
 import { toast } from "sonner";
 
-export const initializeRecorder = async () => {
+export const initializeRecorder = async (isMobile?: boolean) => {
   try {
-    console.log('Getting user media with constraints:', AUDIO_CONSTRAINTS);
+    const mobileConstraints = isMobile ? {
+      channelCount: 1,
+      sampleRate: 44100,
+      sampleSize: 16
+    } : {};
+
+    console.log('Getting user media with constraints:', {
+      ...AUDIO_CONSTRAINTS,
+      ...mobileConstraints
+    });
     
     const stream = await navigator.mediaDevices.getUserMedia({ 
       audio: {
         ...AUDIO_CONSTRAINTS,
+        ...mobileConstraints,
         // Add specific mobile constraints
         echoCancellation: true,
         noiseSuppression: true,
@@ -25,18 +35,38 @@ export const initializeRecorder = async () => {
     console.log('Audio track settings:', audioTrack.getSettings());
     console.log('Audio track constraints:', audioTrack.getConstraints());
 
-    // Check if the MIME type is supported
-    if (!MediaRecorder.isTypeSupported(RECORDER_OPTIONS.mimeType)) {
-      console.error('MIME type not supported:', RECORDER_OPTIONS.mimeType);
-      // Fallback to a more widely supported format
-      RECORDER_OPTIONS.mimeType = 'audio/webm';
-      if (!MediaRecorder.isTypeSupported(RECORDER_OPTIONS.mimeType)) {
-        throw new Error('Audio recording is not supported in this browser');
+    // Try different MIME types for better mobile compatibility
+    const mimeTypes = [
+      'audio/webm',
+      'audio/webm;codecs=opus',
+      'audio/mp4',
+      'audio/ogg;codecs=opus'
+    ];
+
+    let selectedMimeType = null;
+    for (const mimeType of mimeTypes) {
+      if (MediaRecorder.isTypeSupported(mimeType)) {
+        selectedMimeType = mimeType;
+        break;
       }
     }
 
-    const recorder = new MediaRecorder(stream, RECORDER_OPTIONS);
-    console.log('MediaRecorder initialized with options:', RECORDER_OPTIONS);
+    if (!selectedMimeType) {
+      console.error('No supported MIME type found');
+      throw new Error('Audio recording is not supported in this browser');
+    }
+
+    console.log('Selected MIME type:', selectedMimeType);
+    
+    const recorderOptions = {
+      ...RECORDER_OPTIONS,
+      mimeType: selectedMimeType,
+      // Lower bitrate for mobile
+      audioBitsPerSecond: isMobile ? 64000 : 128000
+    };
+
+    const recorder = new MediaRecorder(stream, recorderOptions);
+    console.log('MediaRecorder initialized with options:', recorderOptions);
 
     return { recorder, stream };
   } catch (error) {

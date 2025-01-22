@@ -11,11 +11,20 @@ export const useAudioRecorder = (
 
   const handleStartRecording = useCallback(async () => {
     try {
+      const userAgent = navigator.userAgent;
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(userAgent);
+      
       console.log('[AudioRecorder Hook] Starting recording process...', {
-        browser: navigator.userAgent,
+        browser: userAgent,
         platform: navigator.platform,
+        isMobile,
         mediaDevices: !!navigator.mediaDevices,
-        getUserMedia: !!navigator.mediaDevices?.getUserMedia
+        getUserMedia: !!navigator.mediaDevices?.getUserMedia,
+        mimeTypes: {
+          webm: MediaRecorder.isTypeSupported('audio/webm'),
+          wav: MediaRecorder.isTypeSupported('audio/wav'),
+          mp4: MediaRecorder.isTypeSupported('audio/mp4'),
+        }
       });
       
       // Clean up any existing recorder
@@ -32,11 +41,12 @@ export const useAudioRecorder = (
         });
       }
       
-      const recorder = await startRecording({ isRecording, setIsRecording });
+      const recorder = await startRecording({ isRecording, setIsRecording, isMobile });
       mediaRecorderRef.current = recorder;
       console.log('[AudioRecorder Hook] Recording started successfully', {
         state: recorder.state,
-        mimeType: recorder.mimeType
+        mimeType: recorder.mimeType,
+        options: recorder.options
       });
     } catch (error) {
       console.error('[AudioRecorder Hook] Error in handleStartRecording:', error);
@@ -46,13 +56,19 @@ export const useAudioRecorder = (
       if (error instanceof DOMException) {
         switch (error.name) {
           case 'NotAllowedError':
-            toast.error('Microphone access was denied. Please allow microphone access and try again.');
+            toast.error('Microphone access denied. Please check your browser settings and permissions.');
             break;
           case 'NotFoundError':
-            toast.error('No microphone found. Please check your device settings.');
+            toast.error('No microphone found. Please ensure your device has a working microphone.');
             break;
           case 'NotReadableError':
-            toast.error('Could not access your microphone. Please try restarting your browser.');
+            toast.error('Could not access microphone. Please try closing other apps using the microphone.');
+            break;
+          case 'SecurityError':
+            toast.error('Security error accessing microphone. Please ensure you\'re using HTTPS.');
+            break;
+          case 'AbortError':
+            toast.error('Recording was interrupted. Please try again.');
             break;
           default:
             toast.error(`Recording failed: ${error.message}`);
