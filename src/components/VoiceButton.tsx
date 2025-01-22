@@ -2,6 +2,8 @@ import React, { useRef, useEffect } from 'react';
 import { Mic } from 'lucide-react';
 import { startRecording } from '@/lib/audioRecording';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface VoiceButtonProps {
   isRecording: boolean;
@@ -11,6 +13,7 @@ interface VoiceButtonProps {
 export const VoiceButton: React.FC<VoiceButtonProps> = ({ isRecording, setIsRecording }) => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const isMobile = useIsMobile();
+  const { toast } = useToast();
 
   useEffect(() => {
     return () => {
@@ -67,10 +70,15 @@ export const VoiceButton: React.FC<VoiceButtonProps> = ({ isRecording, setIsReco
         recorder.onstop = async () => {
           console.log('Recording stopped, processing chunks...');
           const audioBlob = new Blob(chunks, { type: options.mimeType });
-          console.log('Final audio blob:', audioBlob.size, 'bytes');
+          console.log('Audio blob created:', audioBlob.size, 'bytes');
           
           if (audioBlob.size < 100) {
             console.error('Audio recording too short');
+            toast({
+              variant: "destructive",
+              title: "Recording too short",
+              description: "Please record a longer message"
+            });
             return;
           }
 
@@ -82,21 +90,32 @@ export const VoiceButton: React.FC<VoiceButtonProps> = ({ isRecording, setIsReco
             
             try {
               const { data, error } = await supabase.functions.invoke('voice-to-text', {
-                body: { audio: base64Audio }
+                body: { audio: base64Audio.split(',')[1] }
               });
 
               if (error) throw error;
               console.log('Voice-to-text response:', data);
               
               if (data?.success && data?.expenses) {
-                toast.success('Expenses recorded successfully!');
+                toast({
+                  title: "Success",
+                  description: "Expenses recorded successfully!"
+                });
                 window.location.reload();
               } else {
-                toast.error(data?.error || 'Failed to process expense');
+                toast({
+                  variant: "destructive",
+                  title: "Error",
+                  description: data?.error || 'Failed to process expense'
+                });
               }
             } catch (error) {
               console.error('Error processing audio:', error);
-              toast.error('Failed to process audio. Please try again.');
+              toast({
+                variant: "destructive",
+                title: "Error",
+                description: 'Failed to process audio. Please try again.'
+              });
             }
           };
         };
@@ -115,7 +134,11 @@ export const VoiceButton: React.FC<VoiceButtonProps> = ({ isRecording, setIsReco
     } catch (error) {
       console.error('Recording error:', error);
       setIsRecording(false);
-      toast.error('Recording failed. Please check your microphone permissions.');
+      toast({
+        variant: "destructive",
+        title: "Recording failed",
+        description: 'Please check your microphone permissions.'
+      });
     }
   };
 
