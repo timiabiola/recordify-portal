@@ -1,5 +1,6 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { startOfMonth, endOfMonth } from 'date-fns';
 
 type ExpenseData = {
   category: string;
@@ -37,6 +38,7 @@ type ExpensesPieChartProps = {
       name: string;
     };
     amount: number;
+    created_at: string;
   }[];
 };
 
@@ -45,24 +47,30 @@ export const ExpensesPieChart = ({ expenses }: ExpensesPieChartProps) => {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Expense Distribution</CardTitle>
+          <CardTitle>Monthly Expense Distribution</CardTitle>
         </CardHeader>
         <CardContent className="h-[300px] flex items-center justify-center text-muted-foreground">
-          No expenses found
+          No expenses found for this month
         </CardContent>
       </Card>
     );
   }
 
-  // Process data for the pie chart, including recurring payments
-  const data = expenses.reduce((acc: ExpenseData[], expense) => {
+  // Filter expenses for the current month
+  const currentDate = new Date();
+  const monthStart = startOfMonth(currentDate);
+  const monthEnd = endOfMonth(currentDate);
+
+  const currentMonthExpenses = expenses.filter(expense => {
+    const expenseDate = new Date(expense.created_at);
+    return expenseDate >= monthStart && expenseDate <= monthEnd;
+  });
+
+  // Process data for the pie chart
+  const data = currentMonthExpenses.reduce((acc: ExpenseData[], expense) => {
     const categoryName = expense.categories.name;
     const existingCategory = acc.find(item => item.category === categoryName);
-    
-    // For recurring payments, multiply the amount by 12 to show annual impact
-    const amount = categoryName === 'recurring_payments' 
-      ? Number(expense.amount) * 12  // Annualize monthly payments
-      : Number(expense.amount);
+    const amount = Number(expense.amount);
     
     if (existingCategory) {
       existingCategory.amount += amount;
@@ -76,12 +84,20 @@ export const ExpensesPieChart = ({ expenses }: ExpensesPieChartProps) => {
     return acc;
   }, []);
 
-  console.log('[ExpensesPieChart] Processed data:', data);
+  console.log('[ExpensesPieChart] Current month data:', data);
+
+  // Calculate total monthly expenses
+  const totalMonthlyExpenses = data.reduce((total, item) => total + item.amount, 0);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Annual Expense Distribution</CardTitle>
+        <CardTitle className="flex flex-col gap-2">
+          <span>Monthly Expense Distribution</span>
+          <span className="text-sm font-normal text-muted-foreground">
+            Total: ${totalMonthlyExpenses.toFixed(2)}
+          </span>
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="h-[300px]">
@@ -108,14 +124,12 @@ export const ExpensesPieChart = ({ expenses }: ExpensesPieChartProps) => {
               <Tooltip 
                 formatter={(value: number) => `$${value.toFixed(2)}`}
                 labelFormatter={(category) => {
-                  const label = category.charAt(0).toUpperCase() + category.slice(1).replace('_', ' ');
-                  return category === 'recurring_payments' ? `${label} (Yearly)` : label;
+                  return category.charAt(0).toUpperCase() + category.slice(1).replace('_', ' ');
                 }}
               />
               <Legend 
                 formatter={(value) => {
-                  const label = value.charAt(0).toUpperCase() + value.slice(1).replace('_', ' ');
-                  return value === 'recurring_payments' ? `${label} (Yearly)` : label;
+                  return value.charAt(0).toUpperCase() + value.slice(1).replace('_', ' ');
                 }}
               />
             </PieChart>

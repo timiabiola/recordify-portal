@@ -5,13 +5,15 @@ import { ExpensesPieChart } from "@/components/dashboard/ExpensesPieChart";
 import { CategorySelect } from "@/components/dashboard/CategorySelect";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Mic, ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState } from "react";
+import { format } from "date-fns";
 
 const Dashboard = () => {
   const isMobile = useIsMobile();
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const currentMonth = format(new Date(), 'MMMM yyyy');
 
   const { data: categories } = useQuery({
     queryKey: ["categories"],
@@ -67,10 +69,15 @@ const Dashboard = () => {
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Dashboard</h1>
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Monthly Budget</h1>
+          <p className="text-muted-foreground">{currentMonth}</p>
+        </div>
       </div>
 
       <div className="space-y-4 sm:space-y-6">
+        <ExpensesPieChart expenses={expenses} />
+        
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <h2 className="text-lg sm:text-xl font-semibold">Recent Expenses</h2>
@@ -83,8 +90,6 @@ const Dashboard = () => {
           </div>
           <ExpensesTable expenses={expenses} />
         </div>
-        
-        <ExpensesPieChart expenses={expenses} />
       </div>
     </div>
   );
