@@ -1,7 +1,9 @@
+
 import React from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAudioRecorder } from '@/hooks/use-audio-recorder';
 import { RecordingAnimation } from './RecordingAnimation';
+import { toast } from 'sonner';
 
 interface VoiceButtonProps {
   isRecording: boolean;
@@ -15,6 +17,12 @@ export const VoiceButton: React.FC<VoiceButtonProps> = ({ isRecording, setIsReco
   const handleClick = async () => {
     try {
       console.log('[VoiceButton] Handle click triggered', { isRecording, isMobile });
+      
+      if (!navigator.mediaDevices?.getUserMedia) {
+        toast.error('Audio recording is not supported in this browser');
+        return;
+      }
+
       if (!isRecording) {
         await startRecording();
       } else {
@@ -23,6 +31,7 @@ export const VoiceButton: React.FC<VoiceButtonProps> = ({ isRecording, setIsReco
     } catch (error) {
       console.error('[VoiceButton] Error handling click:', error);
       setIsRecording(false);
+      toast.error('Failed to access microphone. Please check your permissions.');
     }
   };
 

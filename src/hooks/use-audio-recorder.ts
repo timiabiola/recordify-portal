@@ -1,3 +1,4 @@
+
 import { useRef, useCallback } from 'react';
 import type { AudioRecorderHook } from '@/lib/audio/types';
 import { getAudioConstraints, initializeMediaStream, createMediaRecorder } from '@/lib/audio/initializeRecorder';
@@ -5,6 +6,7 @@ import { handleRecordingError } from '@/lib/audio/handleErrors';
 import { createRecordingHandlers } from '@/lib/audio/handlers';
 import { createRecorderState, cleanupRecorderState } from '@/lib/audio/recorder-state';
 import { setupRecorderEvents } from '@/lib/audio/recorder-events';
+import { toast } from 'sonner';
 
 export const useAudioRecorder = (
   isRecording: boolean,
@@ -19,6 +21,7 @@ export const useAudioRecorder = (
 
   const handleStartRecording = useCallback(async (): Promise<void> => {
     try {
+      // Ensure cleanup of any previous recording session
       cleanupRecorder();
 
       const userAgent = navigator.userAgent;
@@ -31,7 +34,13 @@ export const useAudioRecorder = (
         constraints
       });
 
+      // Request microphone access
       const stream = await initializeMediaStream(constraints);
+      if (!stream.active) {
+        toast.error('Failed to access microphone. Please check your permissions.');
+        return;
+      }
+
       const recorder = createMediaRecorder(stream, isMobile);
       const handlers = createRecordingHandlers();
 

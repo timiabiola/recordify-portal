@@ -1,3 +1,4 @@
+
 import { toast } from "sonner";
 import { AudioConstraints } from "./types";
 
@@ -16,11 +17,11 @@ export const getAudioConstraints = (isMobile: boolean): AudioConstraints => ({
 
 export const getMimeType = (): string => {
   const mimeTypes = [
-    'audio/webm;codecs=opus',
+    'audio/wav',
     'audio/webm',
+    'audio/webm;codecs=opus',
     'audio/ogg;codecs=opus',
-    'audio/mp4',
-    'audio/wav'
+    'audio/mp4'
   ];
 
   const supportedMimeType = mimeTypes.find(type => MediaRecorder.isTypeSupported(type));

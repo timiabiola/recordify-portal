@@ -1,3 +1,4 @@
+
 import { toast } from "sonner";
 import { handleEmptyRecordingError, handleShortRecordingError } from "./errorHandling";
 import { AUDIO_FORMAT } from "./config";
@@ -29,7 +30,7 @@ export const createRecordingHandlers = () => {
         return;
       }
 
-      const audioBlob = new Blob(chunks, { type: AUDIO_FORMAT.type });
+      const audioBlob = new Blob(chunks, { type: mimeType }); // Use the actual mimeType
       console.log('[Audio Handlers] Audio blob created:', {
         size: audioBlob.size,
         type: audioBlob.type
@@ -48,7 +49,7 @@ export const createRecordingHandlers = () => {
     } catch (error) {
       console.error('[Audio Handlers] Error processing audio:', error);
       toast.error('Failed to process recording. Please try again.');
-      throw error; // Propagate error for proper handling
+      throw error;
     }
   };
 
