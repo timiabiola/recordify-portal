@@ -8,9 +8,9 @@ const AuthForm = () => {
   const currentOrigin = window.location.origin;
   console.log('Auth redirect URL:', currentOrigin);
 
-  // Use the production URL for the deployed version, otherwise use the current origin
+  // Use the production URL with wildcard for the deployed version, otherwise use the current origin
   const redirectUrl = process.env.NODE_ENV === 'production' 
-    ? 'https://app.echoledger.io/auth/callback'
+    ? 'https://*.echoledger.io/auth/callback'
     : `${currentOrigin}/auth/callback`;
 
   return (
