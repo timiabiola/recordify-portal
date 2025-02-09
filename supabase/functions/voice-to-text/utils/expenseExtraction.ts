@@ -1,3 +1,4 @@
+
 import OpenAI from 'https://esm.sh/openai@4.20.1';
 
 export async function extractExpenseDetails(text: string) {
@@ -10,7 +11,7 @@ export async function extractExpenseDetails(text: string) {
 
     console.log('Making OpenAI API request...');
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4o-mini", // This is the correct model name
       messages: [
         {
           role: "system",
