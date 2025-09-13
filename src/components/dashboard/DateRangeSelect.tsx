@@ -32,7 +32,7 @@ export const DateRangeSelect = ({
         value={dateRangeType}
         onValueChange={onDateRangeTypeChange}
       >
-        <SelectTrigger className="w-full sm:w-[140px]">
+        <SelectTrigger className="w-full sm:w-auto sm:min-w-[200px]">
           <SelectValue>
             {dateRangeType === 'monthly' ? 'Monthly' : 
              dateRangeType === 'ytd' ? 'Year to Date' : 
@@ -51,7 +51,7 @@ export const DateRangeSelect = ({
           value={selectedMonth.toISOString()}
           onValueChange={onMonthChange}
         >
-          <SelectTrigger className="w-full sm:w-[180px]">
+          <SelectTrigger className="w-full sm:w-auto sm:min-w-[200px]">
             <SelectValue>
               {format(selectedMonth, isMobile ? 'MMM yyyy' : 'MMMM yyyy')}
             </SelectValue>
