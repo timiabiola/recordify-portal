@@ -25,18 +25,18 @@ export const DashboardHeader = ({
   return (
     <div className="bg-white rounded-lg shadow-sm p-3 sm:p-6">
       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-        <div className="flex items-center gap-2 sm:gap-4">
+        <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
           <Button 
             variant="ghost" 
             size="icon" 
-            className="h-8 w-8 sm:h-10 sm:w-10"
+            className="h-8 w-8 sm:h-10 sm:w-10 flex-shrink-0"
             onClick={onBackClick}
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div>
+          <div className="min-w-0 flex-1">
             <h1 className="text-lg sm:text-2xl font-bold tracking-tight">Monthly Budget</h1>
-            <p className="text-xs sm:text-sm text-muted-foreground">{dateRangeLabel}</p>
+            <p className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis">{dateRangeLabel}</p>
           </div>
         </div>
         <div className="sm:ml-auto w-full sm:w-auto">
